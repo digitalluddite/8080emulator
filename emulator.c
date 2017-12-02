@@ -669,9 +669,18 @@ static int disassemble_rom(const char* rom)
 	uint32_t offset = 0;
 	while (offset < _buf.st_size) 
 	{
+		int i;
 		INSTRUCTION inst = inst_set[buf[offset]];
 		char c = (inst.op_type == immediate) ?  '#' : '$';
-		printf("%08X  %s ", offset, inst.mnemonic);
+		printf("%08X  ", offset);
+		
+		for (i = 0 ; i < inst.length ; ++i) {
+			printf("%02X ", buf[offset+i]);
+		}
+		for (; i < 3 ; ++i) {
+			printf("   ");
+		}
+		printf("  %s ", inst.mnemonic);
 		switch(inst.length) {
 			case 2:
 				printf("%c%02X", c, buf[offset+1]);
