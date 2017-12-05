@@ -1,5 +1,10 @@
 
 #include <stdio.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+#include "cpu.h"
+#include "machine.h"
 
 void print_bits(uint8_t b) {
 	printf("%d%d%d%d %d%d%d%d",
@@ -34,4 +39,17 @@ void dump_cpu_state(const CPU *cpu)
 	printf("\tA   %02X\n", cpu->registers[REG_A]);
 }
 
+
+void print_instruction(CPU *cpu) {
+}
+
+
+
+void debug_console(const CPU *cpu) {
+	char *input;
+
+	input = readline("[8080] ");	
+	while(!input) {
+	}
+}
 

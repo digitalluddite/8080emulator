@@ -5,6 +5,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _cond_bits {
 	char carry:1;
 	char one:1;			// always 1
@@ -45,20 +49,11 @@ typedef struct {
 	uint8_t* memory;	
 } CPU;
 
-#define ADDRESS_FROM_REGISTER(l,h) \
-	
-
-typedef enum {
-	none,
-	address,
-	immediate
-} inst_op_type;
 
 typedef struct instruction {
-	unsigned char opcode;
-	int length;
-	const char* mnemonic;
-	inst_op_type op_type;
+	uint8_t opcode;
+	uint8_t operand1;
+	uint8_t operand2;
 } INSTRUCTION;
 
 
@@ -68,15 +63,19 @@ typedef struct instruction {
 	create and initialize a CPU struct
 */
 CPU* initialize_cpu();
+void free_cpu(CPU *cpu);
 
-EMFUNC(mov);
-EMFUNC(inr);
 EMFUNC(cmc);
 EMFUNC(stc);
 EMFUNC(dcr); // TODO: not sure how to calculate aux carry
+EMFUNC(inr);
 EMFUNC(cma);
 
+EMFUNC(mov);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

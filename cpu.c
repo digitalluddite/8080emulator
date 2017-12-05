@@ -4,7 +4,7 @@
 #include "cpu.h"
 
 
-CPU *initialze_cpu () {
+CPU *initialize_cpu () {
 	CPU *cpu = (CPU*)malloc(sizeof(CPU));
 	bzero(cpu, sizeof(CPU));
 	cpu->flags.one = 1;
@@ -14,7 +14,7 @@ CPU *initialze_cpu () {
 	return cpu;
 }
 
-void release_cpu(CPU *cpu) {
+void free_cpu(CPU *cpu) {
 	free(cpu->memory);
 	free(cpu);	
 }
@@ -124,7 +124,7 @@ int dcr (CPU *cpu, const INSTRUCTION *inst) {
 //  Complement carry - toggle carry bit
 int cmc(CPU *cpu, const INSTRUCTION *inst)
 {
-	cpu->flags.carry = !cpu->flags.carry;
+	cpu->flags.carry = ~cpu->flags.carry;
 	return 0;
 }
 

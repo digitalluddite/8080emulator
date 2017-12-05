@@ -2,6 +2,10 @@
 #ifndef _MACHINE_H_
 #define _MACHINE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "cpu.h"
 
 
@@ -34,5 +38,9 @@ cpufunc get_cpu_function(CPU *cpu);
 int get_instruction_length(CPU *cpu);
 
 OPCODE_INFO get_opcode_info(uint8_t opcode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
