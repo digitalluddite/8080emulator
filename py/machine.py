@@ -3,6 +3,21 @@ from collections import namedtuple
 
 OpCode = namedtuple('OpCode', ['opcode', "length", "mnemonic", "optype"])
 
+
+class RomLoadException(Exception):
+    def __init__(self, msg):
+        self._msg = msg
+
+    def __str__(self):
+        return self._msg
+
+class RomException (Exception):
+    def __init__(self, msg):
+        self._msg = msg
+
+    def __str__(self):
+        return self._msg
+
 class Machine8080:
     def __init__(self):
         self.instructions = [
@@ -262,4 +277,9 @@ class Machine8080:
             OpCode(opcode=int('fe', 16), length=2, mnemonic="CPI", optype="immediate"),
             OpCode(opcode=int('ff', 16), length=1, mnemonic="RST", optype="none"),
         ]
+        self._memory = [ 0 for x in range(0x10000)]
+
+    def load(self, romfile):
+        try:
+            with open(romfile, "rb") as fp:
 
