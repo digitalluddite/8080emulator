@@ -3,6 +3,7 @@ from collections import namedtuple
 
 OpCode = namedtuple('OpCode', ['opcode', "length", "mnemonic", "optype"])
 
+
 class Machine8080:
     def __init__(self):
         self.instructions = [
