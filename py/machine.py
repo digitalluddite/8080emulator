@@ -11,6 +11,7 @@ class RomLoadException(Exception):
     def __str__(self):
         return self._msg
 
+
 class RomException (Exception):
     def __init__(self, msg):
         self._msg = msg
@@ -18,11 +19,13 @@ class RomException (Exception):
     def __str__(self):
         return self._msg
 
+
 class Machine8080:
     def __init__(self):
-        self.instructions = [
+        self.opcodes = (
             OpCode(opcode=int('00', 16), length=1, mnemonic="NOP", optype="none"),
             OpCode(opcode=int('01', 16), length=3, mnemonic="LXI B", optype="immediate"),
+            OpCode(opcode=int('02', 16), length=1, mnemonic="NOP", optype="none"),
             OpCode(opcode=int('03', 16), length=1, mnemonic="INX B", optype="none"),
             OpCode(opcode=int('04', 16), length=1, mnemonic="INR B", optype="none"),
             OpCode(opcode=int('05', 16), length=1, mnemonic="DCR B", optype="none"),
@@ -276,10 +279,75 @@ class Machine8080:
             OpCode(opcode=int('fd', 16), length=1, mnemonic="UNKNOWN", optype="none"),
             OpCode(opcode=int('fe', 16), length=2, mnemonic="CPI", optype="immediate"),
             OpCode(opcode=int('ff', 16), length=1, mnemonic="RST", optype="none"),
-        ]
-        self._memory = [ 0 for x in range(0x10000)]
+        )
+        self._memory = None
 
     def load(self, romfile):
+        """Loads the given ROM file
+
+        :param romfile: full path to the ROM to load
+
+        :raises RomLoadException: if the file cannot be read
+        """
         try:
             with open(romfile, "rb") as fp:
+                self._memory = fp.read()
+                self._memory = self._memory \
+                               + bytearray([0 for x in range(0x10000 - len(self._memory))])
+                self._pc = 0
+        except Exception as e:
+            raise RomLoadException("{0}".format(e))
+
+    @staticmethod
+    def format_operand(opcode, ops):
+        """
+        Return a string representation of the given operands.
+        :param opcode:  OpCode tuple for the operands
+        :param ops: An iterable thing of operands
+        :return: a string
+        """
+        if len(ops) == 0:
+            return ""
+        prefix = "#" if opcode.optype == "immediate" else "$"
+        tmp = list(ops)
+        # 8080 chip is little endian so swap the bytes
+        tmp = tmp[::-1]
+        return "{0}{1}".format(prefix, "".join(["{:02X}".format(x) for x in tmp]))
+
+    @staticmethod
+    def instruction_bytes(opcode, operands):
+        b = [ "{:02X}".format(opcode.opcode) ]
+        b.extend( [ "{:02X}".format(o) for o in operands ])
+        for x in range(3 - len(b)):
+            b.append( "  ")
+        return " ".join(b)
+
+    def disassemble(self):
+        """Disassembles the loaded ROM.
+
+        :raises RomException: if a ROM hasn't been loaded
+        """
+        if self._memory is None:
+            raise RomException("No ROM file loaded.")
+        address = 0
+        for inst, operands in self.next_instruction():
+            print("{0:04X}: {1}  {2} {3}".format(address,
+                                                Machine8080.instruction_bytes(inst, operands),
+                                                inst.mnemonic,
+                                                Machine8080.format_operand(inst, operands)))
+            address += inst.length
+
+    def next_instruction(self):
+        """Parses loaded ROM and returns next instruction.
+
+        The program counter is advanced for every instruction.
+
+        :return tuple:  Returns tuple of OpCode and list of operands (may be empty)
+        """
+        while self._pc < len(self._memory):
+            op = self.opcodes[self._memory[self._pc]]
+            operands = [self._memory[self._pc + x] for x in range(1, op.length) ]
+            self._pc += op.length
+            yield (op, operands)
+
 
