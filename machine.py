@@ -1,8 +1,19 @@
-
+import sys
+import logging
 from collections import namedtuple
 
+from cpu import Flags, Registers
 
-OpCode = namedtuple('OpCode', ['opcode', "length", "mnemonic", "optype"])
+"""
+OpCode object
+-- opcode byte
+-- length number of bytes in total instruction (opcode and operands)
+-- mnemonic string-based instruction
+-- optype either "none", "immediate", or "address" to specify if the 
+          operands are immediate values or addresses
+-- handler function to process the instruction
+"""
+OpCode = namedtuple('OpCode', ['opcode', "length", "mnemonic", "optype", "handler"])
 
 
 class RomLoadException(Exception):
@@ -25,13 +36,29 @@ class OutOfMemoryException(Exception):
     pass
 
 
+class EmulatorRuntimeException(Exception):
+    def __init__(self, opcode, msg):
+        """
+        Exception raised when executing the given opcode
+        :param opcode: opcode that couldn't be executed
+        :param msg: Descriptive message about problem
+        """
+        self.op = opcode
+        self.msg = msg
+
+    def __repr(self):
+        return "Error processing instruction {0:02X}: {1}".format(self.op, self.msg)
+
+
 class Machine8080:
     def __init__(self):
         self._memory = None
         self._pc = 0
+        self._flags = Flags()
+        self._registers = Registers()
         self.opcodes = (
-            OpCode(opcode=int('00', 16), length=1, mnemonic="NOP", optype="none"),
-            OpCode(opcode=int('01', 16), length=3, mnemonic="LXI B", optype="immediate"),
+            OpCode(int('00', 16), 1, "NOP", "none", self.nop),
+            OpCode(int('01', 16), 3, "LXI B", "immediate", self.unhandled_instruction),
             OpCode(opcode=int('02', 16), length=1, mnemonic="UNKNOWN", optype="none"),
             OpCode(opcode=int('03', 16), length=1, mnemonic="INX B", optype="none"),
             OpCode(opcode=int('04', 16), length=1, mnemonic="INR B", optype="none"),
@@ -288,7 +315,6 @@ class Machine8080:
             OpCode(opcode=int('ff', 16), length=1, mnemonic="RST", optype="none"),
         )
 
-
     def load(self, romfile):
         """Loads the given ROM file
 
@@ -304,6 +330,33 @@ class Machine8080:
                 self._pc = 0
         except Exception as e:
             raise RomLoadException("{0}".format(e))
+
+    def disassemble(self):
+        """Disassembles the loaded ROM.
+
+        :raises RomException: if a ROM hasn't been loaded
+        """
+        if self._memory is None:
+            raise RomException("No ROM file loaded.")
+        address = 0
+        for inst, operands in self.next_instruction():
+            print("{0:04X}: {1}  {2} {3}".format(address,
+                                                 Machine8080.instruction_bytes(inst, operands),
+                                                 inst.mnemonic,
+                                                 Machine8080.format_operand(inst, operands)))
+            address += inst.length
+
+    def execute(self):
+        if self._memory is None:
+            raise RomException("No ROM file loaded.")
+        for inst, operands in self.next_instruction():
+            try:
+                if self.opcodes.handler is None:
+                    self.unhandled_instruction(inst.opcode, operands)
+                else:
+                    self.opcodes.handler(inst.opcode, operands)
+            except EmulatorRuntimeException as e:
+                logging.error("{}".format(e))
 
     @staticmethod
     def format_operand(opcode, ops):
@@ -331,21 +384,6 @@ class Machine8080:
             b.append( "  ")
         return " ".join(b)
 
-    def disassemble(self):
-        """Disassembles the loaded ROM.
-
-        :raises RomException: if a ROM hasn't been loaded
-        """
-        if self._memory is None:
-            raise RomException("No ROM file loaded.")
-        address = 0
-        for inst, operands in self.next_instruction():
-            print("{0:04X}: {1}  {2} {3}".format(address,
-                                                Machine8080.instruction_bytes(inst, operands),
-                                                inst.mnemonic,
-                                                Machine8080.format_operand(inst, operands)))
-            address += inst.length
-
     def next_instruction(self):
         """Parses loaded ROM and returns next instruction.
 
@@ -370,3 +408,21 @@ class Machine8080:
         if address + size >= len(self._memory):
             raise OutOfMemoryException()
         return [b for b in self._memory[address:address+size]]
+
+    def nop(self, *args):
+        logging.info("NOP")
+
+    def mov(self, opcode, *args):
+        pass
+
+    def set_carry(self, *args):
+        self._flags.set(Flags.CARRY)
+
+    def unhandled_instruction(self, opcode, *args):
+        logging.warning("Unhandled instruction: {0}".format(self.opcodes[opcode]))
+
+
+if __name__ == "__main__":
+    machine = Machine8080()
+    machine.load(sys.argv[1])
+    machine.execute()
