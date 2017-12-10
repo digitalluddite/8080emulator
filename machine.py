@@ -1,6 +1,7 @@
 
 from collections import namedtuple
 
+
 OpCode = namedtuple('OpCode', ['opcode', "length", "mnemonic", "optype"])
 
 
@@ -20,12 +21,18 @@ class RomException (Exception):
         return self._msg
 
 
+class OutOfMemoryException(Exception):
+    pass
+
+
 class Machine8080:
     def __init__(self):
+        self._memory = None
+        self._pc = 0
         self.opcodes = (
             OpCode(opcode=int('00', 16), length=1, mnemonic="NOP", optype="none"),
             OpCode(opcode=int('01', 16), length=3, mnemonic="LXI B", optype="immediate"),
-            OpCode(opcode=int('02', 16), length=1, mnemonic="NOP", optype="none"),
+            OpCode(opcode=int('02', 16), length=1, mnemonic="UNKNOWN", optype="none"),
             OpCode(opcode=int('03', 16), length=1, mnemonic="INX B", optype="none"),
             OpCode(opcode=int('04', 16), length=1, mnemonic="INR B", optype="none"),
             OpCode(opcode=int('05', 16), length=1, mnemonic="DCR B", optype="none"),
@@ -280,7 +287,7 @@ class Machine8080:
             OpCode(opcode=int('fe', 16), length=2, mnemonic="CPI", optype="immediate"),
             OpCode(opcode=int('ff', 16), length=1, mnemonic="RST", optype="none"),
         )
-        self._memory = None
+
 
     def load(self, romfile):
         """Loads the given ROM file
@@ -316,6 +323,8 @@ class Machine8080:
 
     @staticmethod
     def instruction_bytes(opcode, operands):
+        """Returns a string of the opcode and operand bytes.
+        """
         b = [ "{:02X}".format(opcode.opcode) ]
         b.extend( [ "{:02X}".format(o) for o in operands ])
         for x in range(3 - len(b)):
@@ -346,8 +355,18 @@ class Machine8080:
         """
         while self._pc < len(self._memory):
             op = self.opcodes[self._memory[self._pc]]
-            operands = [self._memory[self._pc + x] for x in range(1, op.length) ]
+            operands = [self._memory[self._pc + x] for x in range(1, op.length)]
             self._pc += op.length
             yield (op, operands)
 
-
+    def read_memory(self, address, size):
+        """
+        Reads size bytes of memory starting at the given address.
+        :param address:
+        :param size:
+        :return: tuple of memory read
+        :raises: OutOfMemory error if the read goes past the end of memory
+        """
+        if address + size >= len(self._memory):
+            raise OutOfMemoryException()
+        return [b for b in self._memory[address:address+size]]
