@@ -3,11 +3,12 @@ from unittest import TestCase
 from machine import Machine8080
 from machine import OutOfMemoryException
 
+ROM_PATH = ""
 
 class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
-        self.machine.load("/Users/mdonovan/Projects/emulator/invaders/rom")
+        self.machine.load()
 
     def test_read_memory(self):
         bytes = self.machine.read_memory(0, 10)
