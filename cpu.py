@@ -97,19 +97,22 @@ class Registers:
     """
     Encapsulates registers and provides easy access to them.
     """
-    A = 0
-    B = 1
-    C = 2
-    D = 3
-    E = 4
-    H = 5
-    L = 6
+    B = 0
+    C = 1
+    D = 2
+    E = 3
+    H = 4
+    L = 5
+    M = 6   # this indicates a memory reference; registers H and L have the address
+    A = 7
 
     def __init__(self):
-        self._registers = [0, 0, 0, 0, 0, 0, 0]
-        self._pairs = { Registers.H: RegisterPair(Registers.H, Registers.L),
-                        Registers.B: RegisterPair(Registers.B, Registers.C),
-                        Registers.D: RegisterPair(Registers.D, Registers.E)}
+        self._registers = {Registers.B: 0, Registers.C: 0, Registers.D: 0, Registers.E: 0,
+                           Registers.H: 0, Registers.L: 0, Registers.A: 0}
+        # some registers are accessed by pairs and the first register (keys) are used to indicate which pair
+        self._pairs = {Registers.H: RegisterPair(Registers.H, Registers.L),
+                       Registers.B: RegisterPair(Registers.B, Registers.C),
+                       Registers.D: RegisterPair(Registers.D, Registers.E)}
 
     def __getitem__(self, reg):
         """
@@ -119,14 +122,14 @@ class Registers:
         """
         if type(reg) != int:
             raise TypeError("Expected register number")
-        if reg < Registers.A or reg > Registers.L:
+        if reg not in self._registers:
             raise IndexError(reg)
         return self._registers[reg]
 
     def __setitem__(self, reg, val):
         if type(reg) != int:
             raise TypeError("Expected register number")
-        if reg < Registers.A or reg > Registers.L:
+        if reg not in self._registers:
             raise IndexError(reg)
         self._registers[reg] = val
 
@@ -146,3 +149,23 @@ class Registers:
         hi = self._registers[pair.hi]
         lo = self._registers[pair.lo]
         return (hi << 8) | lo
+
+    @staticmethod
+    def get_register_from_opcode(opcode, bit_offset):
+        """
+        Returns the register number encoded in the opcode starting at the given bit offset.
+
+        Registers are encoded into the opcode with three bits:
+            000  -- B
+            001  -- C
+            010  -- D
+            011  -- E
+            100  -- H
+            101  -- L
+            110  -- M (memory reference)
+            111  -- A
+        :param opcode:  Opcode to extract register from
+        :param bit_offset:  0-based offset (of least-significant bit) where the register is encoded.
+        :return:
+        """
+        return (opcode & (7 << bit_offset)) >> bit_offset
