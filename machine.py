@@ -2,7 +2,7 @@ import sys
 import logging
 from collections import namedtuple
 
-from cpu import Flags, Registers
+from cpu import Flags, Registers, RegisterPair
 
 """
 OpCode object
@@ -59,7 +59,7 @@ class Machine8080:
         self.opcodes = (
             OpCode(int('00', 16), 1, "NOP", "none", self.nop),
             OpCode(int('01', 16), 3, "LXI B", "immediate", self.unhandled_instruction),
-            OpCode(int('02', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
+            OpCode(int('02', 16), 1, "STAX B", "none", self.stax),
             OpCode(opcode=int('03', 16), length=1, mnemonic="INX B", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('04', 16), length=1, mnemonic="INR B", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('05', 16), length=1, mnemonic="DCR B", optype="none", handler=self.unhandled_instruction),
@@ -67,7 +67,7 @@ class Machine8080:
             OpCode(opcode=int('07', 16), length=1, mnemonic="RLC", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('08', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('09', 16), length=1, mnemonic="DAD B", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('0a', 16), length=1, mnemonic="LDAX B", optype="none", handler=self.unhandled_instruction),
+            OpCode(opcode=int('0a', 16), length=1, mnemonic="LDAX B", optype="none", handler=self.ldax),
             OpCode(opcode=int('0b', 16), length=1, mnemonic="DCX B", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('0c', 16), length=1, mnemonic="INR C", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('0d', 16), length=1, mnemonic="DCR C", optype="none", handler=self.unhandled_instruction),
@@ -75,7 +75,7 @@ class Machine8080:
             OpCode(opcode=int('0f', 16), length=1, mnemonic="RRC", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('10', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('11', 16), length=3, mnemonic="LXI D", optype="immediate", handler=self.unhandled_instruction),
-            OpCode(opcode=int('12', 16), length=1, mnemonic="STAX D", optype="none", handler=self.unhandled_instruction),
+            OpCode(opcode=int('12', 16), length=1, mnemonic="STAX D", optype="none", handler=self.stax),
             OpCode(opcode=int('13', 16), length=1, mnemonic="INX D", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('14', 16), length=1, mnemonic="INR D", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('15', 16), length=1, mnemonic="DCR D", optype="none", handler=self.unhandled_instruction),
@@ -83,7 +83,7 @@ class Machine8080:
             OpCode(opcode=int('17', 16), length=1, mnemonic="RAL", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('18', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('19', 16), length=1, mnemonic="DAD D", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('1a', 16), length=1, mnemonic="LDAX D", optype="none", handler=self.unhandled_instruction),
+            OpCode(opcode=int('1a', 16), length=1, mnemonic="LDAX D", optype="none", handler=self.ldax),
             OpCode(opcode=int('1b', 16), length=1, mnemonic="DCX D", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('1c', 16), length=1, mnemonic="INR E", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('1d', 16), length=1, mnemonic="DCR E", optype="none", handler=self.unhandled_instruction),
@@ -400,7 +400,7 @@ class Machine8080:
         Reads size bytes of memory starting at the given address.
         :param address:
         :param size:
-        :return: tuple of memory read
+        :return: tuple of memory read or just byte if size == 1
         :raises: OutOfMemory error if the read goes past the end of memory
         """
         if address + size >= len(self._memory):
@@ -447,8 +447,7 @@ class Machine8080:
         else:
             addr = self._registers.get_address_from_pair(Registers.H)
             if src == Registers.M:
-                data = self.read_memory(addr, 1)
-                self._registers[dst] = data[0]
+                self._registers[dst], *_ = self.read_memory(addr, 1)
             else:
                 # dst is memory
                 self.write_memory(addr, self._registers[src])
@@ -459,6 +458,31 @@ class Machine8080:
     def unhandled_instruction(self, opcode, *args):
         logging.warning("Unhandled instruction: {0}".format(self.opcodes[opcode]))
 
+    def stax(self, opcode, *args):
+        """
+        Contents of accumulator are stored in the address
+        stored in pairs B, C (opcode 0x02) or D,E (opcode 0x12)
+
+        :param args:
+        :return:
+        """
+        assert((opcode == 0x02) or (opcode == 0x12))
+        pair = Registers.B if opcode == 0x02 else Registers.D
+        address = self._registers.get_address_from_pair(pair)
+        self.write_memory(address, self._registers[Registers.A])
+
+    def ldax(self, opcode, *args):
+        """
+        The contents of the memory location addressed by B,C (opcode 0x0a)
+        or D,E (opcode 0x1a) are loaded into the accumulator.
+        :param opcode:
+        :param args:
+        :return:
+        """
+        assert(opcode in (0x0a, 0x1a))
+        pair = Registers.B if opcode == 0x0a else Registers.D
+        address = self._registers.get_address_from_pair(pair)
+        self._registers[Registers.A], *_ = self.read_memory(address, 1)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
