@@ -251,15 +251,15 @@ class Machine8080:
             OpCode(opcode=int('bf', 16), length=1, mnemonic="CMP A", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('c0', 16), length=1, mnemonic="RNZ", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('c1', 16), length=1, mnemonic="POP B", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('c2', 16), length=3, mnemonic="JNZ", optype="address", handler=self.unhandled_instruction),
-            OpCode(opcode=int('c3', 16), length=3, mnemonic="JMP", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('c2', 16), length=3, mnemonic="JNZ", optype="address", handler=self.conditional_jmp),
+            OpCode(opcode=int('c3', 16), length=3, mnemonic="JMP", optype="address", handler=self.jmp),
             OpCode(opcode=int('c4', 16), length=3, mnemonic="CNZ", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('c5', 16), length=1, mnemonic="PUSH B", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('c6', 16), length=2, mnemonic="ADI", optype="immediate", handler=self.unhandled_instruction),
             OpCode(opcode=int('c7', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('c8', 16), length=1, mnemonic="RZ", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('c9', 16), length=1, mnemonic="RET", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('ca', 16), length=3, mnemonic="JZ", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('ca', 16), length=3, mnemonic="JZ", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('cb', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('cc', 16), length=3, mnemonic="CZ", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('cd', 16), length=3, mnemonic="CALL", optype="address", handler=self.unhandled_instruction),
@@ -267,7 +267,7 @@ class Machine8080:
             OpCode(opcode=int('cf', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('d0', 16), length=1, mnemonic="RNC", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('d1', 16), length=1, mnemonic="POP D", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('d2', 16), length=3, mnemonic="JNC", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('d2', 16), length=3, mnemonic="JNC", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('d3', 16), length=2, mnemonic="OUT", optype="immediate", handler=self.unhandled_instruction),
             OpCode(opcode=int('d4', 16), length=3, mnemonic="CNC", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('d5', 16), length=1, mnemonic="PUSH D", optype="none", handler=self.unhandled_instruction),
@@ -275,7 +275,7 @@ class Machine8080:
             OpCode(opcode=int('d7', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('d8', 16), length=1, mnemonic="RC", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('d9', 16), length=1, mnemonic="UNKONWN", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('da', 16), length=3, mnemonic="JC", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('da', 16), length=3, mnemonic="JC", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('db', 16), length=2, mnemonic="IN", optype="immediate", handler=self.unhandled_instruction),
             OpCode(opcode=int('dc', 16), length=3, mnemonic="CC", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('dd', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
@@ -283,15 +283,15 @@ class Machine8080:
             OpCode(opcode=int('df', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('e0', 16), length=1, mnemonic="RPO", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('e1', 16), length=1, mnemonic="POP H", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('e2', 16), length=3, mnemonic="JPO", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('e2', 16), length=3, mnemonic="JPO", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('e3', 16), length=1, mnemonic="XTHL", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('e4', 16), length=3, mnemonic="CPO", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('e5', 16), length=1, mnemonic="PUSH H", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('e6', 16), length=2, mnemonic="ANI", optype="immediate", handler=self.unhandled_instruction),
             OpCode(opcode=int('e7', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('e8', 16), length=1, mnemonic="RPI", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('e9', 16), length=1, mnemonic="PCHL", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('ea', 16), length=3, mnemonic="JPE", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('e9', 16), length=1, mnemonic="PCHL", optype="none", handler=self.pchl),
+            OpCode(opcode=int('ea', 16), length=3, mnemonic="JPE", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('eb', 16), length=1, mnemonic="XCHG", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('ec', 16), length=3, mnemonic="CPE", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('ed', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
@@ -299,7 +299,7 @@ class Machine8080:
             OpCode(opcode=int('ef', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('f0', 16), length=1, mnemonic="RP", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('f1', 16), length=1, mnemonic="POP PSW", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('f2', 16), length=3, mnemonic="JP", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('f2', 16), length=3, mnemonic="JP", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('f3', 16), length=1, mnemonic="DI", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('f4', 16), length=3, mnemonic="CP", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('f5', 16), length=1, mnemonic="PUSH PSW", optype="none", handler=self.unhandled_instruction),
@@ -307,7 +307,7 @@ class Machine8080:
             OpCode(opcode=int('f7', 16), length=1, mnemonic="RST", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('f8', 16), length=1, mnemonic="RM", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('f9', 16), length=1, mnemonic="SPHL", optype="none", handler=self.unhandled_instruction),
-            OpCode(opcode=int('fa', 16), length=3, mnemonic="JM", optype="address", handler=self.unhandled_instruction),
+            OpCode(opcode=int('fa', 16), length=3, mnemonic="JM", optype="address", handler=self.conditional_jmp),
             OpCode(opcode=int('fb', 16), length=1, mnemonic="EI", optype="none", handler=self.unhandled_instruction),
             OpCode(opcode=int('fc', 16), length=3, mnemonic="CM", optype="address", handler=self.unhandled_instruction),
             OpCode(opcode=int('fd', 16), length=1, mnemonic="UNKNOWN", optype="none", handler=self.unhandled_instruction),
@@ -439,6 +439,7 @@ class Machine8080:
         :param args:  This is ignored; mov is a one byte instruction
         :return:
         """
+        logging.info(f'MOV {opcode:02X}')
         dst = Registers.get_register_from_opcode(opcode, 3)
         src = Registers.get_register_from_opcode(opcode, 0)
 
@@ -453,6 +454,7 @@ class Machine8080:
                 self.write_memory(addr, self._registers[src])
 
     def set_carry(self, *args):
+        logging.info('SET CARRY')
         self._flags.set(Flags.CARRY)
 
     def unhandled_instruction(self, opcode, *args):
@@ -466,6 +468,7 @@ class Machine8080:
         :param args:
         :return:
         """
+        logging.info(f'STAX {opcode:02X}')
         assert((opcode == 0x02) or (opcode == 0x12))
         pair = Registers.B if opcode == 0x02 else Registers.D
         address = self._registers.get_address_from_pair(pair)
@@ -479,10 +482,55 @@ class Machine8080:
         :param args:
         :return:
         """
+        logging.info(f'LDAX {opcode:02X}')
         assert(opcode in (0x0a, 0x1a))
         pair = Registers.B if opcode == 0x0a else Registers.D
         address = self._registers.get_address_from_pair(pair)
         self._registers[Registers.A], *_ = self.read_memory(address, 1)
+
+    def pchl(self, *args):
+        """
+        The contents of the H register replace the most significant 8-bits
+        of the program counter and the contents of the L register replace
+        the least-significant 8-bits of the program counter.
+
+        In other words, program execution continues at the address stored
+        in H and L
+        :param args:
+        :return:
+        """
+        logging.info('PCHL')
+        self._pc = self._registers.get_address_from_pair(Registers.H)
+
+    def jmp(self, opcode, operands):
+        """
+        Unconditional jump to address stored in lo and hi
+        :param opcode: 0xc3
+        :param operands: tuple of lo and hi bytes of address
+        :return:
+        """
+        lo, hi = operands
+        logging.info(f'JMP {hi:02X}{lo:02X}')
+        self._pc = (hi << 8) | lo
+
+    def conditional_jmp(self, opcode, operands):
+        """
+        sets the program counter to the address in operands if the condition
+        specified by the opcode is true
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        lo, hi = operands
+        logging.info(f'CONDITIONAL JMP {opcode:02X} {hi:02X}{lo:02X}')
+        # map opcodes to the flags that dictate them and the expected setting
+        jmpbits = {0xda: (Flags.CARRY, 1), 0xd2:(Flags.CARRY,0), 0xe2:(Flags.PARITY, 0),
+                   0xea: (Flags.PARITY, 1), 0xf2: (Flags.SIGN, 0), 0xfa: (Flags.SIGN, 1),
+                   0xc2: (Flags.ZERO, 0), 0xca: (Flags.ZERO, 1)}
+
+        flag, res = jmpbits[opcode]
+        if self._flags[flag] == res:
+            self._pc = (hi << 8) | lo
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

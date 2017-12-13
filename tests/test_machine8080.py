@@ -3,7 +3,7 @@ import logging
 
 from machine import Machine8080
 from machine import OutOfMemoryException
-from cpu import Registers
+from cpu import Registers, Flags
 
 
 ROM_PATH = "/Users/mdonovan/Projects/emulator/invaders/rom"
@@ -64,3 +64,70 @@ class TestMachine8080(TestCase):
         self.machine._registers[Registers.E] = 0xFF
         self.machine.ldax(0x1a)
         self.assertTrue(self.machine._registers[Registers.A] == 0x2c)
+
+    def test_pchl(self):
+        self.machine._registers[Registers.H] = 0x54
+        self.machine._registers[Registers.L] = 0x32
+        self.machine.pchl(0xe9)
+        self.assertTrue(self.machine._pc == 0x5432)
+
+    def test_jmp(self):
+        for lo,hi in [ (0x32, 0x23), (0x44, 0xff), (0x12, 0x43)]:
+            self.machine.jmp(0xc3, (lo, hi))
+            self.assertTrue(self.machine._pc == ((hi << 8) | lo))
+
+    def _test_condjump_set(self, opcode, flag, bitname):
+        """
+        Tests if the program jumps when the given flag is set
+        :param opcode:
+        :param flag:
+        :param msg:
+        :return:
+        """
+        self.machine._flags.clear(flag)
+        self.machine._pc = 0
+        self.machine.conditional_jmp(opcode, (0x22, 0x44))
+        self.assertFalse(self.machine._pc == 0x4422, f'{bitname} bit 0 should not have jumped')
+        self.machine._flags.set(flag)
+        self.machine.conditional_jmp(opcode, (0x22, 0x44))
+        self.assertTrue(self.machine._pc == 0x4422, f'{bitname} bit 1 should have jumped')
+
+    def _test_condjump_clear(self, opcode, flag, bitname):
+        """
+        Tests if the program jumps when the given flag is set
+        :param opcode:
+        :param flag:
+        :param msg:
+        :return:
+        """
+        self.machine._flags.set(flag)
+        self.machine._pc = 0
+        self.machine.conditional_jmp(opcode, (0x22, 0x44))
+        self.assertFalse(self.machine._pc == 0x4422, f'{bitname} bit 1 should not have jumped')
+        self.machine._flags.clear(flag)
+        self.machine.conditional_jmp(opcode, (0x22, 0x44))
+        self.assertTrue(self.machine._pc == 0x4422, f'{bitname} bit 0 should have jumped')
+
+    def test_jc(self):
+        self._test_condjump_set(0xda, Flags.CARRY, "CARRY")
+
+    def test_jnc(self):
+        self._test_condjump_clear(0xd2, Flags.CARRY, "CARRY")
+
+    def test_jz(self):
+        self._test_condjump_set(0xca, Flags.ZERO, "ZERO")
+
+    def test_jnz(self):
+        self._test_condjump_clear(0xc2, Flags.ZERO, "ZERO")
+
+    def test_jm(self):
+        self._test_condjump_set(0xfa, Flags.SIGN, "SIGN")
+
+    def test_jp(self):
+        self._test_condjump_clear(0xf2, Flags.SIGN, "SIGN")
+
+    def test_jpe(self):
+        self._test_condjump_set(0xea, Flags.PARITY, "PARITY")
+
+    def test_jpo(self):
+        self._test_condjump_clear(0xe2, Flags.PARITY, "PARITY")
