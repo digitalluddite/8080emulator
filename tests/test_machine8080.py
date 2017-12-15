@@ -129,6 +129,12 @@ class TestMachine8080(TestCase):
     def test_jpo(self):
         self._test_condjump_clear(0xe2, Flags.PARITY, "PARITY")
 
+	def _test_carry(self, expected):
+		"""Checks that the carry bit val is equal to expected.
+		"""
+		self.assertTrue(self.machine._flags[Flags.CARRY] == expected,
+					    f'CARRY BIT NOT EQUAL TO {expected}')
+
     def test_ana(self):
         """Logical AND.  Carry bit is cleared, zero, sign, and parity are affected
 
@@ -136,6 +142,7 @@ class TestMachine8080(TestCase):
         AND 0011 1111
             0011 0011 (0x33)
         """
+		self.machine._flags.set(Flags.CARRY)
         # Verify ANA performs correct operation with each register  (Skip ANA M since it's memory)
         tests = [(0xa0, Registers.B, 0x33), (0xa1, Registers.C, 0x33), (0xa2, Registers.D, 0x33),
                  (0xa3, Registers.E, 0x33), (0xa4, Registers.H, 0x33), (0xa5, Registers.L, 0x33),
@@ -146,6 +153,7 @@ class TestMachine8080(TestCase):
             self.machine.ana(opcode)
             self.assertTrue(self.machine._registers[Registers.A] == res,
                             f'Result of ANA (opcode: {opcode:02X}) {self.machine._registers[Registers.A]:02X} not {res:02X}')
+			self._test_carry(0)
 
         # test memory ANA opcode 0xa6
         self.machine.write_memory(0x5599, 0x33)
@@ -155,6 +163,7 @@ class TestMachine8080(TestCase):
         self.machine.ana(0xa6)
         self.assertTrue(self.machine._registers[Registers.A] == 0x33,
                         f'result of ANA M = {self.machine._registers[Registers.A]}, not 0x33')
+		self._test_carry(0)
 
         # verify CARRY flag is cleared
         self.machine._flags.set(Flags.CARRY)
@@ -205,4 +214,55 @@ class TestMachine8080(TestCase):
         self.assertTrue(self.machine._flags[Flags.SIGN] == 0, "0x3d AND 0x97 = {0:02X}".format(0xbd & 0x97))
 
     def test_xra(self):
-        pass
+        """
+        Exclusive-OR the register (or memory) specified in the opcode
+
+        Carry bit is reset.
+        Zero, sign, parity, auxiliary carry?
+
+        The reference manual states that the carry bit is reset but doesn't say anything
+        about the aux. carry bit.  The XRI instruction (xor immediate) does NOT affect
+        the aux carry.  So I wonder if it was a mistake by the manual writers to include
+        it here.  I've seen other mistakes in the document.
+
+        (Modern Intel references state that the aux carry is undefined for this instruction)
+		"""
+		# test correct behavior with registers
+		# Register = 0x5C  0101 1100
+		# Accum.   = 0x78  0111 1000  XOR = 0010 0100 
+		tests = [(0xa8, Registers.B), (0xa9, Registers.C), (0xaa, Registers.D),
+				 (0xab, Registers.C), (0xac, Registers.H), (0xad, Reigsters.L)]
+		self.machine._flags.set(Flags.CARRY)
+		for op,reg in tests:
+			self.machine._registers[reg] = 0x5C
+			self.machine._registers[Registers.A] = 0x78
+			self.machine._flags.set(Flags.CARRY)
+			self.machine.xra(op)
+			self.assertTrue(self.machine._registers[Registers.A] == 0x24, 
+							f'XRA ({op}) expected 0x24 got {self.machine._registers[Registers.A]:02X}')
+			self._test_carry(0)
+
+		# A ^ A = 0
+		self.machine._flags.set(Flags.CARRY)
+		self.machine.xra(0xaf)
+		self.assertTrue(self.machine._registers[Registers.A] == 0,
+						f'A ^ A = {self.machine._registers[Registers.A]}')
+		self._test_carry(0)
+
+		# test correct behavior with memory
+		self.machine.write_memory(0x72aa, 0x5c)
+		self.machine._registers[Registers.H] = 0x72
+		self.machine._registers[Registers.L] = 0xaa
+		self.machine._registers[Registers.A] = 0x78
+		self.machine._flags.set(Flags.CARRY)
+		self.machine.xra(0xae)
+		self.assertTrue(self.machine._registers[Registers.A] == 0x24, 
+						f'XRA M expected 0x24 got {self.machine._registers[Registers.A]:02X}')
+		self._test_carry(0)
+
+		# test zero bit is set/cleared
+
+		# test sign bit is set/cleared
+
+		# test parity bit is set/cleared
+
