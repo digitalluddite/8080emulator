@@ -311,3 +311,22 @@ class TestMachine8080(TestCase):
         self.set_register(Registers.A, 0x73)
         self.machine.xra(0xa8)
         self._test_flag(Flags.PARITY, "Parity", 0)
+
+    def test_mvi(self):
+        """Moves byte in operand into the given register or memory location
+
+        2-byte instruction
+        """
+        tests = [(0x06, Registers.B, 0x87), (0x0e, Registers.C, 0x23), (0x16, Registers.D, 0x12),
+                 (0x1e, Registers.E, 0xf2), (0x26, Registers.H, 0xa2), (0x2e, Registers.L, 0xee),
+                 (0x3d, Registers.A, 0xd9)]
+        for op, reg, val in tests:
+            self.machine.mvi(op, (val,))
+            self.assertEquals(self.machine._registers[reg], val, f'Register {reg} does not equal {val}')
+
+        # 0x36 - opcode for MVI M
+        self.set_register(Registers.H, 0x34)
+        self.set_register(Registers.L, 0xaa)
+        self.machine.mvi(0x36, (0xed,))
+        self.assertEquals(self.machine.read_memory(0x34aa, 1)[0], 0xed,
+                          f'Memory address 0x34aa does not contain 0xed')
