@@ -145,6 +145,9 @@ class Registers:
         self._pairs = {Registers.H: RegisterPair(Registers.H, Registers.L),
                        Registers.B: RegisterPair(Registers.B, Registers.C),
                        Registers.D: RegisterPair(Registers.D, Registers.E)}
+        self._rp = [RegisterPair(Registers.B, Registers.C),
+                    RegisterPair(Registers.D, Registers.E),
+                    RegisterPair(Registers.H, Registers.L)]
 
     def __getitem__(self, reg):
         """
@@ -201,3 +204,8 @@ class Registers:
         :return:
         """
         return (opcode & (7 << bit_offset)) >> bit_offset
+
+    def get_pairs(self, pair_encoding):
+        """Returns a RegisterPair namedtuple
+        """
+        return self._rp[pair_encoding]

@@ -56,9 +56,10 @@ class Machine8080:
         self._pc = 0
         self._flags = Flags()
         self._registers = Registers()
+        self._sp = 0
         self.opcodes = (
             OpCode(int('00', 16), 1, "NOP", "none", self.nop),
-            OpCode(int('01', 16), 3, "LXI B", "immediate", self.unhandled_instruction),
+            OpCode(int('01', 16), 3, "LXI B", "immediate", self.lxi),
             OpCode(int('02', 16), 1, "STAX B", "none", self.stax),
             OpCode(int('03', 16), 1, "INX B", "none", self.unhandled_instruction),
             OpCode(int('04', 16), 1, "INR B", "none", self.unhandled_instruction),
@@ -74,7 +75,7 @@ class Machine8080:
             OpCode(int('0e', 16), 2, "MVI C", "immediate", self.mvi),
             OpCode(int('0f', 16), 1, "RRC", "none", self.unhandled_instruction),
             OpCode(int('10', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('11', 16), 3, "LXI D", "immediate", self.unhandled_instruction),
+            OpCode(int('11', 16), 3, "LXI D", "immediate", self.lxi),
             OpCode(int('12', 16), 1, "STAX D", "none", self.stax),
             OpCode(int('13', 16), 1, "INX D", "none", self.unhandled_instruction),
             OpCode(int('14', 16), 1, "INR D", "none", self.unhandled_instruction),
@@ -90,7 +91,7 @@ class Machine8080:
             OpCode(int('1e', 16), 2, "MVI E,", "immediate", self.mvi),
             OpCode(int('1f', 16), 1, "RAR", "none", self.unhandled_instruction),
             OpCode(int('20', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('21', 16), 3, "LXI H", "immediate", self.unhandled_instruction),
+            OpCode(int('21', 16), 3, "LXI H", "immediate", self.lxi),
             OpCode(int('22', 16), 3, "SHLD", "address", self.unhandled_instruction),
             OpCode(int('23', 16), 1, "INX H", "none", self.unhandled_instruction),
             OpCode(int('24', 16), 1, "INR H", "none", self.unhandled_instruction),
@@ -106,7 +107,7 @@ class Machine8080:
             OpCode(int('2e', 16), 2, "MVI L,", "immediate", self.mvi),
             OpCode(int('2f', 16), 1, "CMA", "none", self.unhandled_instruction),
             OpCode(int('30', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('31', 16), 3, "LXI SP", "immediate", self.unhandled_instruction),
+            OpCode(int('31', 16), 3, "LXI SP", "immediate", self.lxi),
             OpCode(int('32', 16), 3, "STA", "address", self.unhandled_instruction),
             OpCode(int('33', 16), 1, "INX SP", "none", self.unhandled_instruction),
             OpCode(int('34', 16), 1, "INR M", "none", self.unhandled_instruction),
@@ -598,6 +599,24 @@ class Machine8080:
             self.write_memory(self._registers.get_address_from_pair(Registers.H), operands[0])
         else:
             self._registers[reg] = operands[0]
+
+    def lxi(self, opcode, operands):
+        """Byte 3 of the instruction is moved into the high-order register of the
+        register pair.  Byte 2 is moved into the low-order register of the pair
+
+        Register pairs can be B, D, H, and SP (stack pointer)
+
+        00rp0001
+        """
+        rp = (opcode >> 4) & 0x3
+        logging.info(f'register pair: {rp:02x}')
+        if rp == 0x3: # stack pointer
+            self._sp = (operands[1] << 8) | operands[0]
+        else:
+            pair = self._registers.get_pairs(rp)
+            self._registers[pair.lo] = operands[0]
+            self._registers[pair.hi] = operands[1]
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

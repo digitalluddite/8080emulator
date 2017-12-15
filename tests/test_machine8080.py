@@ -322,11 +322,26 @@ class TestMachine8080(TestCase):
                  (0x3d, Registers.A, 0xd9)]
         for op, reg, val in tests:
             self.machine.mvi(op, (val,))
-            self.assertEquals(self.machine._registers[reg], val, f'Register {reg} does not equal {val}')
+            self.assertEqual(self.machine._registers[reg], val, f'Register {reg} does not equal {val}')
 
         # 0x36 - opcode for MVI M
         self.set_register(Registers.H, 0x34)
         self.set_register(Registers.L, 0xaa)
         self.machine.mvi(0x36, (0xed,))
-        self.assertEquals(self.machine.read_memory(0x34aa, 1)[0], 0xed,
+        self.assertEqual(self.machine.read_memory(0x34aa, 1)[0], 0xed,
                           f'Memory address 0x34aa does not contain 0xed')
+
+    def test_lxi(self):
+        """Moves two bytes into low and hi parts of register pair or stack pointer
+
+        <opcode> <lo> <hi>
+        """
+        for op, lo,hi in [(0x01, Registers.C, Registers.B), (0x11, Registers.E, Registers.D),
+                          (0x21, Registers.L, Registers.H)]:
+            self.machine.lxi(op, (0xef, 0x12))
+            self.assertEqual(self.machine._registers[lo], 0xef, f'lo byte of {op:02X} not correct')
+            self.assertEqual(self.machine._registers[hi], 0x12, f'hi byte of {op:02X} not correct')
+
+        # test SP
+        self.machine.lxi(0x31, (0x12, 0xef))
+        self.assertEqual(self.machine._sp, 0xef12)
