@@ -352,3 +352,13 @@ class TestMachine8080(TestCase):
         self.machine.write_memory(0x1122, 0xaa)
         self.machine.lda(0x3a, (0x22, 0x11))
         self.assertEqual(self.machine._registers[Registers.A], 0xaa, f'Accumulator not set from memory.')
+
+    def test_sta(self):
+        """
+        Contents of the accumulator are stored in the address
+        :return:
+        """
+        self.set_register(Registers.A, 0x3f)
+        self.machine.sta(0x32, (0xab, 0x12))
+        val, *_ = self.machine.read_memory(0x12ab, 1)
+        self.assertEqual(val, self.machine._registers[Registers.A], f'Memory not set with STA command')

@@ -108,7 +108,7 @@ class Machine8080:
             OpCode(int('2f', 16), 1, "CMA", "none", self.unhandled_instruction),
             OpCode(int('30', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('31', 16), 3, "LXI SP", "immediate", self.lxi),
-            OpCode(int('32', 16), 3, "STA", "address", self.unhandled_instruction),
+            OpCode(int('32', 16), 3, "STA", "address", self.sta),
             OpCode(int('33', 16), 1, "INX SP", "none", self.unhandled_instruction),
             OpCode(int('34', 16), 1, "INR M", "none", self.unhandled_instruction),
             OpCode(int('35', 16), 1, "DCR M", "none", self.unhandled_instruction),
@@ -627,6 +627,16 @@ class Machine8080:
         address = (operands[1] << 8) | operands[0]
         self._registers[Registers.A], *_ = self.read_memory(address, 1)
 
+    def sta(self, opcode, operands):
+        """
+        The contents of the accumulator are stored in the address (operands[0] = lo) operands.
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        address = (operands[1] << 8) | operands[0]
+        self.write_memory(address, self._registers[Registers.A])
+        
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
