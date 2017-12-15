@@ -345,3 +345,10 @@ class TestMachine8080(TestCase):
         # test SP
         self.machine.lxi(0x31, (0x12, 0xef))
         self.assertEqual(self.machine._sp, 0xef12)
+
+    def test_lda(self):
+        """Set data in memory location to accumulator
+        """
+        self.machine.write_memory(0x1122, 0xaa)
+        self.machine.lda(0x3a, (0x22, 0x11))
+        self.assertEqual(self.machine._registers[Registers.A], 0xaa, f'Accumulator not set from memory.')

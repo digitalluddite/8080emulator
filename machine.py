@@ -116,7 +116,7 @@ class Machine8080:
             OpCode(int('37', 16), 1, "STC", "none", self.unhandled_instruction),
             OpCode(int('38', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('39', 16), 1, "DAD SP", "none", self.unhandled_instruction),
-            OpCode(int('3a', 16), 3, "LDA", "address", self.unhandled_instruction),
+            OpCode(int('3a', 16), 3, "LDA", "address", self.lda),
             OpCode(int('3b', 16), 1, "DCX SP", "none", self.unhandled_instruction),
             OpCode(int('3c', 16), 1, "INR A", "none", self.unhandled_instruction),
             OpCode(int('3d', 16), 1, "DCR", "none", self.unhandled_instruction),
@@ -616,6 +616,16 @@ class Machine8080:
             pair = self._registers.get_pairs(rp)
             self._registers[pair.lo] = operands[0]
             self._registers[pair.hi] = operands[1]
+
+    def lda(self, opcode, operands):
+        """
+        Content of the memory address specified in bytes 2 and 3 are moved into accumulator
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        address = (operands[1] << 8) | operands[0]
+        self._registers[Registers.A], *_ = self.read_memory(address, 1)
 
 
 if __name__ == "__main__":
