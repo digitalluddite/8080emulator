@@ -362,3 +362,11 @@ class TestMachine8080(TestCase):
         self.machine.sta(0x32, (0xab, 0x12))
         val, *_ = self.machine.read_memory(0x12ab, 1)
         self.assertEqual(val, self.machine._registers[Registers.A], f'Memory not set with STA command')
+
+    def test_lhld(self):
+        self.machine.write_memory(0x2233, 0x34)
+        self.machine.write_memory(0x2234, 0xaf)
+        self.machine.lhld(0x2a, (0x33, 0x22))
+
+        self.assertEqual(self.machine._registers[Registers.L], 0x34, f'L register didn\'t get 0x34')
+        self.assertEqual(self.machine._registers[Registers.H], 0xaf, f'H register didn\'t get 0xaf')

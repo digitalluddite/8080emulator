@@ -100,7 +100,7 @@ class Machine8080:
             OpCode(int('27', 16), 1, "DAA", "none", self.unhandled_instruction),
             OpCode(int('28', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('29', 16), 1, "DAD H", "none", self.unhandled_instruction),
-            OpCode(int('2a', 16), 3, "LHLD", "address", self.unhandled_instruction),
+            OpCode(int('2a', 16), 3, "LHLD", "address", self.lhld),
             OpCode(int('2b', 16), 1, "DCX H", "none", self.unhandled_instruction),
             OpCode(int('2c', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('2d', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
@@ -636,7 +636,21 @@ class Machine8080:
         """
         address = (operands[1] << 8) | operands[0]
         self.write_memory(address, self._registers[Registers.A])
-        
+
+    def lhld(self, opcode, operands):
+        """
+        The first byte at the address given by the operands is stored in L.  The next address
+        is stored in H.
+
+        [L] = (op[1])(op[0])
+        [H] = (op[1])(op[0]) + 1
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        address = (operands[1] << 8) | operands[0]
+        self._registers[Registers.L], self._registers[Registers.H] = self.read_memory(address, 2)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
