@@ -85,6 +85,33 @@ class Flags:
         """
         self.flags &= ~ 2**bit
 
+    def calculate_parity(self, data):
+        """
+        Sets parity bit to 1 if the number of 1-bits is even
+        :param data: A byte
+        :return:
+        """
+        count = 0
+        for bits in range(8):
+            if data & 1 == 1:
+                count += 1
+            data >>= 1
+        if count % 2 == 0:
+            self.set(Flags.PARITY)
+        else:
+            self.clear(Flags.PARITY)
+
+    def set_zero(self, data):
+        """
+        Sets zero flag to 1 if data is zero, otherwise, clears the flag
+        :param data:
+        :return:
+        """
+        if data == 0:
+            self.set(Flags.ZERO)
+        else:
+            self.clear(Flags.ZERO)
+
 
 class InvalidPairException(Exception):
     pass

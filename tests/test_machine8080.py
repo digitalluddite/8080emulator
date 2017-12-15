@@ -6,13 +6,10 @@ from machine import OutOfMemoryException
 from cpu import Registers, Flags
 
 
-ROM_PATH = "/Users/mdonovan/Projects/emulator/invaders/rom"
-
-
 class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
-        self.machine.load(ROM_PATH)
+        self.machine.load("rom")
         logging.basicConfig(level=logging.INFO)
 
     def test_read_memory(self):
@@ -131,3 +128,81 @@ class TestMachine8080(TestCase):
 
     def test_jpo(self):
         self._test_condjump_clear(0xe2, Flags.PARITY, "PARITY")
+
+    def test_ana(self):
+        """Logical AND.  Carry bit is cleared, zero, sign, and parity are affected
+
+            1111 0011
+        AND 0011 1111
+            0011 0011 (0x33)
+        """
+        # Verify ANA performs correct operation with each register  (Skip ANA M since it's memory)
+        tests = [(0xa0, Registers.B, 0x33), (0xa1, Registers.C, 0x33), (0xa2, Registers.D, 0x33),
+                 (0xa3, Registers.E, 0x33), (0xa4, Registers.H, 0x33), (0xa5, Registers.L, 0x33),
+                 (0xa7, Registers.A, 0x3f)]
+        for opcode, reg, res in tests:
+            self.machine._registers[Registers.A] = 0xf3
+            self.machine._registers[reg] = 0x3f
+            self.machine.ana(opcode)
+            self.assertTrue(self.machine._registers[Registers.A] == res,
+                            f'Result of ANA (opcode: {opcode:02X}) {self.machine._registers[Registers.A]:02X} not {res:02X}')
+
+        # test memory ANA opcode 0xa6
+        self.machine.write_memory(0x5599, 0x33)
+        self.machine._registers[Registers.H] = 0x55
+        self.machine._registers[Registers.L] = 0x99
+        self.machine._registers[Registers.A] = 0x3f
+        self.machine.ana(0xa6)
+        self.assertTrue(self.machine._registers[Registers.A] == 0x33,
+                        f'result of ANA M = {self.machine._registers[Registers.A]}, not 0x33')
+
+        # verify CARRY flag is cleared
+        self.machine._flags.set(Flags.CARRY)
+        self.assertTrue(self.machine._flags[Flags.CARRY] == 1, "Carry flag isn't set when it should be!")
+        self.machine._registers[Registers.B] = 1
+        self.machine._registers[Registers.A] = 3
+        self.machine.ana(0xa0) # 0xa0 = ANA B
+        self.assertTrue(self.machine._flags[Flags.CARRY] == 0, "Carry flag isn't reset after ANA")
+
+        # verify ZERO flag is set appropriately
+        self.machine._flags.clear(Flags.ZERO)
+        self.machine._registers[Registers.C] = 2
+        self.machine._registers[Registers.A] = 6
+        self.machine.ana(0xa1)
+        self.assertTrue(self.machine._flags[Flags.ZERO] == 0,
+                        "Zero flag is set when result isn't 0 (A = {0}".format(self.machine._registers[Registers.A]))
+        # verify Zero flag is set
+        self.machine._registers[Registers.C] = 0
+        self.machine.ana(0xa1)
+        self.assertTrue(self.machine._flags[Flags.ZERO] == 1,
+                        "ZERO flag not set when A AND 0 = {0}".format(self.machine._registers[Registers.A]))
+
+        # verify parity
+        self.machine._flags.clear(Flags.PARITY)
+        self.machine._registers[Registers.A] = 0x33  # 0011 0011
+        self.machine._registers[Registers.D] = 0xf1  # 1111 0001  => 0011 0001  Parity should be 0
+        self.machine.ana(0xa2)
+        self.assertTrue(self.machine._flags[Flags.PARITY] == 0, "0x33 AND 0xF1 = 0x31 => odd parity")
+
+        self.machine._registers[Registers.A] = 0x33  # 0011 0011
+        self.machine._registers[Registers.D] = 0xf3  # 1111 0011  => 0011 0011  Parity should be 1
+        self.machine.ana(0xa2)
+        self.assertTrue(self.machine._flags[Flags.PARITY] == 1, "0x33 AND 0xF3 = 0x33 parity should be 1")
+
+        # verify sign
+        # 1011 1100
+        # 1001 0111  => 1001 0100
+        self.machine._flags.clear(Flags.SIGN)
+        self.machine._registers[Registers.D] = 0xbd
+        self.machine._registers[Registers.A] = 0x97
+        self.machine.ana(0xa2)
+        self.assertTrue(self.machine._flags[Flags.SIGN] == 1, "0xbd AND 0x97 = {0:02X}".format(0xbd & 0x97))
+
+        self.machine._flags.set(Flags.SIGN)
+        self.machine._registers[Registers.D] = 0x3d
+        self.machine._registers[Registers.A] = 0x97
+        self.machine.ana(0xa2)
+        self.assertTrue(self.machine._flags[Flags.SIGN] == 0, "0x3d AND 0x97 = {0:02X}".format(0xbd & 0x97))
+
+    def test_xra(self):
+        pass
