@@ -129,20 +129,22 @@ class TestMachine8080(TestCase):
     def test_jpo(self):
         self._test_condjump_clear(0xe2, Flags.PARITY, "PARITY")
 
-	def _test_carry(self, expected):
-		"""Checks that the carry bit val is equal to expected.
-		"""
-		self.assertTrue(self.machine._flags[Flags.CARRY] == expected,
-					    f'CARRY BIT NOT EQUAL TO {expected}')
+    def _test_flag(self, flag, name, expected):
+        """Checks that the carry bit val is equal to expected.
+        """
+        self.assertTrue(self.machine._flags[flag] == expected,
+                        f'{name} not equal to {expected}')
 
     def test_ana(self):
         """Logical AND.  Carry bit is cleared, zero, sign, and parity are affected
+
+        Intel manual from Sept '75 says the AC bit is affected as well, but not how it's affected
 
             1111 0011
         AND 0011 1111
             0011 0011 (0x33)
         """
-		self.machine._flags.set(Flags.CARRY)
+        self.machine._flags.set(Flags.CARRY)
         # Verify ANA performs correct operation with each register  (Skip ANA M since it's memory)
         tests = [(0xa0, Registers.B, 0x33), (0xa1, Registers.C, 0x33), (0xa2, Registers.D, 0x33),
                  (0xa3, Registers.E, 0x33), (0xa4, Registers.H, 0x33), (0xa5, Registers.L, 0x33),
@@ -153,7 +155,7 @@ class TestMachine8080(TestCase):
             self.machine.ana(opcode)
             self.assertTrue(self.machine._registers[Registers.A] == res,
                             f'Result of ANA (opcode: {opcode:02X}) {self.machine._registers[Registers.A]:02X} not {res:02X}')
-			self._test_carry(0)
+            self._test_flag(Flags.CARRY, "Carry", 0)
 
         # test memory ANA opcode 0xa6
         self.machine.write_memory(0x5599, 0x33)
@@ -163,7 +165,7 @@ class TestMachine8080(TestCase):
         self.machine.ana(0xa6)
         self.assertTrue(self.machine._registers[Registers.A] == 0x33,
                         f'result of ANA M = {self.machine._registers[Registers.A]}, not 0x33')
-		self._test_carry(0)
+        self._test_flag(Flags.CARRY, "Carry", 0)
 
         # verify CARRY flag is cleared
         self.machine._flags.set(Flags.CARRY)
@@ -178,25 +180,24 @@ class TestMachine8080(TestCase):
         self.machine._registers[Registers.C] = 2
         self.machine._registers[Registers.A] = 6
         self.machine.ana(0xa1)
-        self.assertTrue(self.machine._flags[Flags.ZERO] == 0,
-                        "Zero flag is set when result isn't 0 (A = {0}".format(self.machine._registers[Registers.A]))
+        self._test_flag(Flags.ZERO, "Zero", 0)
+
         # verify Zero flag is set
         self.machine._registers[Registers.C] = 0
         self.machine.ana(0xa1)
-        self.assertTrue(self.machine._flags[Flags.ZERO] == 1,
-                        "ZERO flag not set when A AND 0 = {0}".format(self.machine._registers[Registers.A]))
+        self._test_flag(Flags.ZERO, "Zero", 1)
 
         # verify parity
         self.machine._flags.clear(Flags.PARITY)
         self.machine._registers[Registers.A] = 0x33  # 0011 0011
         self.machine._registers[Registers.D] = 0xf1  # 1111 0001  => 0011 0001  Parity should be 0
         self.machine.ana(0xa2)
-        self.assertTrue(self.machine._flags[Flags.PARITY] == 0, "0x33 AND 0xF1 = 0x31 => odd parity")
+        self._test_flag(Flags.PARITY, "Parity", 0)
 
         self.machine._registers[Registers.A] = 0x33  # 0011 0011
         self.machine._registers[Registers.D] = 0xf3  # 1111 0011  => 0011 0011  Parity should be 1
         self.machine.ana(0xa2)
-        self.assertTrue(self.machine._flags[Flags.PARITY] == 1, "0x33 AND 0xF3 = 0x33 parity should be 1")
+        self._test_flag(Flags.PARITY, "Parity", 1)
 
         # verify sign
         # 1011 1100
@@ -205,19 +206,28 @@ class TestMachine8080(TestCase):
         self.machine._registers[Registers.D] = 0xbd
         self.machine._registers[Registers.A] = 0x97
         self.machine.ana(0xa2)
-        self.assertTrue(self.machine._flags[Flags.SIGN] == 1, "0xbd AND 0x97 = {0:02X}".format(0xbd & 0x97))
+        self._test_flag(Flags.SIGN, "Sign", 1)
 
         self.machine._flags.set(Flags.SIGN)
         self.machine._registers[Registers.D] = 0x3d
         self.machine._registers[Registers.A] = 0x97
         self.machine.ana(0xa2)
-        self.assertTrue(self.machine._flags[Flags.SIGN] == 0, "0x3d AND 0x97 = {0:02X}".format(0xbd & 0x97))
+        self._test_flag(Flags.SIGN, "Sign", 0)
+
+    def set_flag(self, flag, val):
+        if val == 0:
+            self.machine._flags.clear(flag)
+        else:
+            self.machine._flags.set(flag)
+
+    def set_register(self, reg, val):
+        self.machine._registers[reg] = val
 
     def test_xra(self):
         """
         Exclusive-OR the register (or memory) specified in the opcode
 
-        Carry bit is reset.
+        Carry and AC bits are cleared.
         Zero, sign, parity, auxiliary carry?
 
         The reference manual states that the carry bit is reset but doesn't say anything
@@ -226,43 +236,78 @@ class TestMachine8080(TestCase):
         it here.  I've seen other mistakes in the document.
 
         (Modern Intel references state that the aux carry is undefined for this instruction)
-		"""
-		# test correct behavior with registers
-		# Register = 0x5C  0101 1100
-		# Accum.   = 0x78  0111 1000  XOR = 0010 0100 
-		tests = [(0xa8, Registers.B), (0xa9, Registers.C), (0xaa, Registers.D),
-				 (0xab, Registers.C), (0xac, Registers.H), (0xad, Reigsters.L)]
-		self.machine._flags.set(Flags.CARRY)
-		for op,reg in tests:
-			self.machine._registers[reg] = 0x5C
-			self.machine._registers[Registers.A] = 0x78
-			self.machine._flags.set(Flags.CARRY)
-			self.machine.xra(op)
-			self.assertTrue(self.machine._registers[Registers.A] == 0x24, 
-							f'XRA ({op}) expected 0x24 got {self.machine._registers[Registers.A]:02X}')
-			self._test_carry(0)
 
-		# A ^ A = 0
-		self.machine._flags.set(Flags.CARRY)
-		self.machine.xra(0xaf)
-		self.assertTrue(self.machine._registers[Registers.A] == 0,
-						f'A ^ A = {self.machine._registers[Registers.A]}')
-		self._test_carry(0)
+        A different Intel 8080 Manual, from Sept. '75, says this instruction clears the AC flag
+        """
+        # test correct behavior with registers
+        # Register = 0x5C  0101 1100
+        # Accum.   = 0x78  0111 1000  XOR = 0010 0100
+        tests = [(0xa8, Registers.B), (0xa9, Registers.C), (0xaa, Registers.D),
+                 (0xab, Registers.E), (0xac, Registers.H), (0xad, Registers.L)]
+        for op, reg in tests:
+            self.machine._flags.set(Flags.CARRY)
+            self.machine._flags.set(Flags.AUX_CARRY)
+            self.machine._flags.clear(Flags.ZERO)
 
-		# test correct behavior with memory
-		self.machine.write_memory(0x72aa, 0x5c)
-		self.machine._registers[Registers.H] = 0x72
-		self.machine._registers[Registers.L] = 0xaa
-		self.machine._registers[Registers.A] = 0x78
-		self.machine._flags.set(Flags.CARRY)
-		self.machine.xra(0xae)
-		self.assertTrue(self.machine._registers[Registers.A] == 0x24, 
-						f'XRA M expected 0x24 got {self.machine._registers[Registers.A]:02X}')
-		self._test_carry(0)
+            self.machine._registers[reg] = 0x5C
+            self.machine._registers[Registers.A] = 0x78
+            self.machine._flags.set(Flags.CARRY)
+            self.machine.xra(op)
+            self.assertEqual(self.machine._registers[Registers.A], 0x24,
+                            f'XRA ({op:02X}) expected 0x24 got {self.machine._registers[Registers.A]:02X}')
 
-		# test zero bit is set/cleared
+            self._test_flag(Flags.CARRY, "Carry", 0)
+            self._test_flag(Flags.AUX_CARRY, "Aux.Carry", 0)
+            self._test_flag(Flags.ZERO, "Zero", 0)
 
-		# test sign bit is set/cleared
+        # A ^ A = 0
+        self.machine._flags.set(Flags.CARRY)
+        self.machine._flags.set(Flags.AUX_CARRY)
+        self.machine.xra(0xaf)
+        self.assertTrue(self.machine._registers[Registers.A] == 0,
+                        f'A ^ A = {self.machine._registers[Registers.A]}')
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux. Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 1)
 
-		# test parity bit is set/cleared
+        # test correct behavior with memory
+        self.machine.write_memory(0x72aa, 0x5c)
+        self.machine._registers[Registers.H] = 0x72
+        self.machine._registers[Registers.L] = 0xaa
+        self.machine._registers[Registers.A] = 0x78
+        self.machine._flags.set(Flags.CARRY)
+        self.machine._flags.set(Flags.AUX_CARRY)
+        self.machine.xra(0xae)
+        self.assertTrue(self.machine._registers[Registers.A] == 0x24,
+                        f'XRA M expected 0x24 got {self.machine._registers[Registers.A]:02X}')
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux. Carry", 0)
 
+        # test sign bit is set/cleared
+        # 0110 0100
+        # 0010 1111 => 0100 1011
+        self.machine._flags.set(Flags.SIGN)
+        self.machine._registers[Registers.B] = 0x64
+        self.machine._registers[Registers.A] = 0x2f
+        self.machine.xra(0xa8)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+
+        self.machine._registers[Registers.A] = 0xcf
+        self.machine.xra(0xa8)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        # test parity bit is set/cleared
+        self.set_flag(Flags.PARITY, 0)
+        # 0110 1100
+        # 1001 1111  => 1111 0011
+        self.set_register(Registers.B, 0x6c)
+        self.set_register(Registers.A, 0x9f)
+        self.machine.xra(0xa8)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
+        # 1111 0011
+        # 0111 0011  => 1000 0000
+        self.set_register(Registers.B, 0xF3)
+        self.set_register(Registers.A, 0x73)
+        self.machine.xra(0xa8)
+        self._test_flag(Flags.PARITY, "Parity", 0)

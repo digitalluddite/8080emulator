@@ -24,7 +24,7 @@ class RomLoadException(Exception):
         return self._msg
 
 
-class RomException (Exception):
+class RomException(Exception):
     def __init__(self, msg):
         self._msg = msg
 
@@ -375,10 +375,10 @@ class Machine8080:
     def instruction_bytes(opcode, operands):
         """Returns a string of the opcode and operand bytes.
         """
-        b = [ "{:02X}".format(opcode.opcode) ]
-        b.extend( [ "{:02X}".format(o) for o in operands ])
+        b = ["{:02X}".format(opcode.opcode)]
+        b.extend(["{:02X}".format(o) for o in operands])
         for x in range(3 - len(b)):
-            b.append( "  ")
+            b.append("  ")
         return " ".join(b)
 
     def next_instruction(self):
@@ -404,7 +404,7 @@ class Machine8080:
         """
         if address + size >= len(self._memory):
             raise OutOfMemoryException()
-        return [b for b in self._memory[address:address+size]]
+        return [b for b in self._memory[address:address + size]]
 
     def write_memory(self, address, data):
         """
@@ -468,7 +468,7 @@ class Machine8080:
         :return:
         """
         logging.info(f'STAX {opcode:02X}')
-        assert((opcode == 0x02) or (opcode == 0x12))
+        assert ((opcode == 0x02) or (opcode == 0x12))
         pair = Registers.B if opcode == 0x02 else Registers.D
         address = self._registers.get_address_from_pair(pair)
         self.write_memory(address, self._registers[Registers.A])
@@ -482,7 +482,7 @@ class Machine8080:
         :return:
         """
         logging.info(f'LDAX {opcode:02X}')
-        assert(opcode in (0x0a, 0x1a))
+        assert (opcode in (0x0a, 0x1a))
         pair = Registers.B if opcode == 0x0a else Registers.D
         address = self._registers.get_address_from_pair(pair)
         self._registers[Registers.A], *_ = self.read_memory(address, 1)
@@ -523,7 +523,7 @@ class Machine8080:
         lo, hi = operands
         logging.info(f'CONDITIONAL JMP {opcode:02X} {hi:02X}{lo:02X}')
         # map opcodes to the flags that dictate them and the expected setting
-        jmpbits = {0xda: (Flags.CARRY, 1), 0xd2:(Flags.CARRY,0), 0xe2:(Flags.PARITY, 0),
+        jmpbits = {0xda: (Flags.CARRY, 1), 0xd2: (Flags.CARRY, 0), 0xe2: (Flags.PARITY, 0),
                    0xea: (Flags.PARITY, 1), 0xf2: (Flags.SIGN, 0), 0xfa: (Flags.SIGN, 1),
                    0xc2: (Flags.ZERO, 0), 0xca: (Flags.ZERO, 1)}
 
@@ -552,12 +552,8 @@ class Machine8080:
 
         self._flags.clear(Flags.CARRY)
         self._flags.calculate_parity(res)
-        self._flags.clear(Flags.ZERO)
-        self._flags.clear(Flags.SIGN)
-        if res == 0:
-            self._flags.set(Flags.ZERO)
-        if (res >> 7) == 1:
-            self._flags.set(Flags.SIGN)
+        self._flags.set_zero(res)
+        self._flags.set_sign(res)
 
     def xra(self, opcode, *args):
         """
@@ -576,7 +572,21 @@ class Machine8080:
         :param args:
         :return:
         """
-        pass
+        reg = self._registers.get_register_from_opcode(opcode, 0)
+        if reg == Registers.M:
+            val, *_ = self.read_memory(self._registers.get_address_from_pair(Registers.H), 1)
+        else:
+            val = self._registers[reg]
+
+        res = val ^ self._registers[Registers.A]
+        logging.info(f'XRA Register {reg} value {val:02X} result = {res:02X}')
+        self._registers[Registers.A] = res
+        self._flags.clear(Flags.CARRY)
+        self._flags.clear(Flags.AUX_CARRY)
+        self._flags.calculate_parity(res)
+        self._flags.set_zero(res)
+        self._flags.set_sign(res)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

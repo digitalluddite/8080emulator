@@ -1,4 +1,3 @@
-
 import argparse
 from machine import Machine8080, RomLoadException, RomException
 

@@ -53,7 +53,7 @@ class Flags:
         :raises InvalidFlagException: if an invalid flag is given
         """
         if bit not in self._valid_bits:
-            raise InvalidFlagException (bit)
+            raise InvalidFlagException(bit)
         self._clear_flag(bit)
 
     def __getitem__(self, key):
@@ -75,7 +75,7 @@ class Flags:
         :param bit: the flag to set
         :return:
         """
-        self.flags |= 2**bit
+        self.flags |= 2 ** bit
 
     def _clear_flag(self, bit):
         """
@@ -83,7 +83,7 @@ class Flags:
         :param bit:  bit to clear
         :return:
         """
-        self.flags &= ~ 2**bit
+        self.flags &= ~ 2 ** bit
 
     def calculate_parity(self, data):
         """
@@ -112,6 +112,11 @@ class Flags:
         else:
             self.clear(Flags.ZERO)
 
+    def set_sign(self, val):
+        self.clear(Flags.SIGN)
+        if (val >> 7) == 1:
+            self.set(Flags.SIGN)
+
 
 class InvalidPairException(Exception):
     pass
@@ -130,7 +135,7 @@ class Registers:
     E = 3
     H = 4
     L = 5
-    M = 6   # this indicates a memory reference; registers H and L have the address
+    M = 6  # this indicates a memory reference; registers H and L have the address
     A = 7
 
     def __init__(self):
