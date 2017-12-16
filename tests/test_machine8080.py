@@ -421,3 +421,20 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.PARITY, "Parity", 1)
         self._test_flag(Flags.SIGN, "Sign", 0)
 
+    def test_call(self):
+        """
+        Invoke a function
+        ((SP)-1) <- PCH
+        ((SP)-2) <- PCL
+        (SP) <- (SP)-2
+        (PC) <- (operands[1])(operands[0])
+        """
+        self.machine._sp = 0xa000
+        self.machine._pc = 0x88AB
+        self.machine.call(0xcd, (0xFF, 0x78))
+        self.assertEqual(self.machine._sp, 0xa000-2,
+                        f'Stack Pointer not correct after call {self.machine._sp:02X}')
+        self.assertEqual(self.machine._pc, 0x78FF, 'Program counter not set correctly')
+        lo, hi = self.machine.read_memory(self.machine._sp, 2)
+        self.assertEqual(hi, 0x88, f'Invalid stack HI {hi:02X} not 0x88')
+        self.assertEqual(lo, 0xab, f'Invalid stack LO {lo:02X} not 0xab')

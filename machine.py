@@ -263,7 +263,7 @@ class Machine8080:
             OpCode(int('ca', 16), 3, "JZ", "address", self.conditional_jmp),
             OpCode(int('cb', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('cc', 16), 3, "CZ", "address", self.unhandled_instruction),
-            OpCode(int('cd', 16), 3, "CALL", "address", self.unhandled_instruction),
+            OpCode(int('cd', 16), 3, "CALL", "address", self.call),
             OpCode(int('ce', 16), 2, "ACI", "immediate", self.unhandled_instruction),
             OpCode(int('cf', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('d0', 16), 1, "RNC", "none", self.unhandled_instruction),
@@ -699,6 +699,21 @@ class Machine8080:
         self._registers[Registers.L] = self._registers[Registers.E]
         self._registers[Registers.E] = tmp
 
+    def call(self, opcode, operands):
+        """
+        Invoke a function
+        ((SP)-1) <- PCH
+        ((SP)-2) <- PCL
+        (SP) <- (SP)-2
+        (PC) <- (operands[1])(operands[0])
+
+        :param opcode:
+        :param operands:
+        """
+        self.write_memory(self._sp-1, (self._pc >> 8) & 0xFF)
+        self.write_memory(self._sp-2, self._pc & 0xFF)
+        self._sp -= 2
+        self._pc = (operands[1] << 8) | operands[0]
 
 
 if __name__ == "__main__":
