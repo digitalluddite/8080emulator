@@ -389,3 +389,35 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers[Registers.E], 0x55)
         self.assertEqual(self.machine._registers[Registers.H], 0x54)
         self.assertEqual(self.machine._registers[Registers.L], 0xae)
+
+    def test_xri(self):
+        """
+        xor second byte of instruction is xor'd with accumulator
+
+        Carry and AC is cleared
+        Zero, Sign, Parity set appropriately
+
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        self.machine._flags.set(Flags.CARRY)
+        self.machine._flags.set(Flags.AUX_CARRY)
+        self.machine._flags.set(Flags.ZERO)
+        self.machine._flags.set(Flags.PARITY)
+        self.machine._flags.clear(Flags.SIGN)
+        self.set_register(Registers.A, 0x4b) # 0100 1011
+        self.machine.xri(0xee, (0x98,))      # 1001 1000 => 1101 0011
+        self.assertEqual(self.machine._registers[Registers.A], 0xd3)
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        self.machine.xri(0xee, (0xd3,))
+        self.assertEqual(self.machine._registers[Registers.A], 0)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+

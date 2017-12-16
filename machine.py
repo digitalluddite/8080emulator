@@ -296,7 +296,7 @@ class Machine8080:
             OpCode(int('eb', 16), 1, "XCHG", "none", self.xchg),
             OpCode(int('ec', 16), 3, "CPE", "address", self.unhandled_instruction),
             OpCode(int('ed', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('ee', 16), 2, "XRI", "immediate", self.unhandled_instruction),
+            OpCode(int('ee', 16), 2, "XRI", "immediate", self.xri),
             OpCode(int('ef', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('f0', 16), 1, "RP", "none", self.unhandled_instruction),
             OpCode(int('f1', 16), 1, "POP PSW", "none", self.unhandled_instruction),
@@ -551,6 +551,21 @@ class Machine8080:
         self._flags.set_zero(res)
         self._flags.set_sign(res)
 
+    def _internal_xor(self, val):
+        """[A] = [A] XOR val
+
+        Carry and AUX are reset
+        Sign, Zero, Parity are set accordingly
+        """
+        res = val ^ self._registers[Registers.A]
+        logging.info(f'[_internal_xor] {val:02X} ^ {self._registers[Registers.A]:02X} = {res:02X}')
+        self._registers[Registers.A] = res
+        self._flags.clear(Flags.CARRY)
+        self._flags.clear(Flags.AUX_CARRY)
+        self._flags.calculate_parity(res)
+        self._flags.set_zero(res)
+        self._flags.set_sign(res)
+
     def xra(self, opcode, *args):
         """
         Exclusive-OR the register (or memory) specified in the opcode
@@ -573,15 +588,20 @@ class Machine8080:
             val, *_ = self.read_memory(self._registers.get_address_from_pair(Registers.H), 1)
         else:
             val = self._registers[reg]
+        self._internal_xor(val)
 
-        res = val ^ self._registers[Registers.A]
-        logging.info(f'XRA Register {reg} value {val:02X} result = {res:02X}')
-        self._registers[Registers.A] = res
-        self._flags.clear(Flags.CARRY)
-        self._flags.clear(Flags.AUX_CARRY)
-        self._flags.calculate_parity(res)
-        self._flags.set_zero(res)
-        self._flags.set_sign(res)
+    def xri(self, opcode, operands):
+        """
+        xor second byte of instruction is xor'd with accumulator
+
+        Carry and AC is cleared
+        Zero, Sign, Parity set appropriately
+
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        self._internal_xor(operands[0])
 
     def mvi(self, opcode, operands):
         """
@@ -678,6 +698,8 @@ class Machine8080:
         tmp = self._registers[Registers.L]
         self._registers[Registers.L] = self._registers[Registers.E]
         self._registers[Registers.E] = tmp
+
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
