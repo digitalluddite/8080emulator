@@ -304,7 +304,7 @@ class Machine8080:
             OpCode(int('f3', 16), 1, "DI", "none", self.unhandled_instruction),
             OpCode(int('f4', 16), 3, "CP", "address", self.unhandled_instruction),
             OpCode(int('f5', 16), 1, "PUSH PSW", "none", self.unhandled_instruction),
-            OpCode(int('f6', 16), 2, "ORI", "immediate", self.unhandled_instruction),
+            OpCode(int('f6', 16), 2, "ORI", "immediate", self.ori),
             OpCode(int('f7', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('f8', 16), 1, "RM", "none", self.unhandled_instruction),
             OpCode(int('f9', 16), 1, "SPHL", "none", self.unhandled_instruction),
@@ -715,6 +715,9 @@ class Machine8080:
         else:
             val = self._registers[reg]
         self._internal_or(val, lambda a,b: a | b)
+
+    def ori(self, opcode, operands):
+        pass
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
