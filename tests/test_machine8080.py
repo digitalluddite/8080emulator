@@ -9,7 +9,7 @@ from cpu import Registers, Flags
 class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
-        self.machine.load("../rom")
+        self.machine.load("rom")
         logging.basicConfig(level=logging.INFO)
 
     def test_read_memory(self):
@@ -421,3 +421,45 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.PARITY, "Parity", 1)
         self._test_flag(Flags.SIGN, "Sign", 0)
 
+    def test_ora(self):
+        # 1101 0110
+        # 0100 1000  => 1101 1110
+        tests = [(0xb0, Registers.B, 0xde), (0xb1, Registers.C, 0xde), (0xb2, Registers.D, 0xde),
+                 (0xb3, Registers.E, 0xde), (0xb4, Registers.H, 0xde), (0xb5, Registers.L, 0xde),
+                 (0xb7, Registers.A, 0x48)]
+        for op, reg, expected in tests:
+            self.machine._flags.set(Flags.CARRY)
+            self.machine._flags.set(Flags.AUX_CARRY)
+            self.machine._flags.set(Flags.ZERO)
+            self.machine._flags.clear(Flags.PARITY)
+            self.machine._flags.clear(Flags.SIGN)
+            self.set_register(reg, 0xd6)
+            self.set_register(Registers.A, 0x48)
+            self.machine.ora(op)
+            self.assertEqual(self.machine._registers[Registers.A], expected,
+                             f'Register {reg} OR A didn\'t produce {expected}')
+            self._test_flag(Flags.CARRY, "Carry", 0)
+            self._test_flag(Flags.AUX_CARRY, "AUX Carry", 0)
+            self._test_flag(Flags.ZERO, "ZERO", 0)
+            self._test_flag(Flags.PARITY, "Parity", 1)
+            self._test_flag(Flags.SIGN, "Sign", 1 if reg != Registers.A else 0)
+
+        self.set_register(Registers.H, 0x33)
+        self.set_register(Registers.L, 0xa7)
+        # 0011 0011
+        # 0100 0000 => 0111 0011
+        self.machine.write_memory(0x33a7, 0x33)
+        self.set_flag(Flags.PARITY, 1)
+        self.set_flag(Flags.SIGN, 1)
+        self.set_register(Registers.A, 0x40)
+        self.machine.ora(0xb6)
+        self.assertEqual(self.machine._registers[Registers.A], 0x73)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+
+        self.set_flag(Flags.ZERO, 0)
+        self.set_register(Registers.D, 0x00)
+        self.set_register(Registers.A, 0x00)
+        self.machine.ora(0xb2)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.ZERO, "Zero", 1)

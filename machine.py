@@ -234,14 +234,14 @@ class Machine8080:
             OpCode(int('ad', 16), 1, "XRA L", "none", self.xra),
             OpCode(int('ae', 16), 1, "XRA M", "none", self.xra),
             OpCode(int('af', 16), 1, "XRA A", "none", self.xra),
-            OpCode(int('b0', 16), 1, "ORA B", "none", self.unhandled_instruction),
-            OpCode(int('b1', 16), 1, "ORA C", "none", self.unhandled_instruction),
-            OpCode(int('b2', 16), 1, "ORA D", "none", self.unhandled_instruction),
-            OpCode(int('b3', 16), 1, "ORA E", "none", self.unhandled_instruction),
-            OpCode(int('b4', 16), 1, "ORA H", "none", self.unhandled_instruction),
-            OpCode(int('b5', 16), 1, "ORA L", "none", self.unhandled_instruction),
-            OpCode(int('b6', 16), 1, "ORA M", "none", self.unhandled_instruction),
-            OpCode(int('b7', 16), 1, "ORA A", "none", self.unhandled_instruction),
+            OpCode(int('b0', 16), 1, "ORA B", "none", self.ora),
+            OpCode(int('b1', 16), 1, "ORA C", "none", self.ora),
+            OpCode(int('b2', 16), 1, "ORA D", "none", self.ora),
+            OpCode(int('b3', 16), 1, "ORA E", "none", self.ora),
+            OpCode(int('b4', 16), 1, "ORA H", "none", self.ora),
+            OpCode(int('b5', 16), 1, "ORA L", "none", self.ora),
+            OpCode(int('b6', 16), 1, "ORA M", "none", self.ora),
+            OpCode(int('b7', 16), 1, "ORA A", "none", self.ora),
             OpCode(int('b8', 16), 1, "CMP B", "none", self.unhandled_instruction),
             OpCode(int('b9', 16), 1, "CMP C", "none", self.unhandled_instruction),
             OpCode(int('ba', 16), 1, "CMP D", "none", self.unhandled_instruction),
@@ -551,13 +551,13 @@ class Machine8080:
         self._flags.set_zero(res)
         self._flags.set_sign(res)
 
-    def _internal_xor(self, val):
-        """[A] = [A] XOR val
+    def _internal_or(self, val, orfunc):
+        """[A] = orfunc([A], val)
 
         Carry and AUX are reset
         Sign, Zero, Parity are set accordingly
         """
-        res = val ^ self._registers[Registers.A]
+        res = orfunc(val, self._registers[Registers.A])
         logging.info(f'[_internal_xor] {val:02X} ^ {self._registers[Registers.A]:02X} = {res:02X}')
         self._registers[Registers.A] = res
         self._flags.clear(Flags.CARRY)
@@ -588,7 +588,7 @@ class Machine8080:
             val, *_ = self.read_memory(self._registers.get_address_from_pair(Registers.H), 1)
         else:
             val = self._registers[reg]
-        self._internal_xor(val)
+        self._internal_or(val, lambda a,b: a ^ b)
 
     def xri(self, opcode, operands):
         """
@@ -601,7 +601,7 @@ class Machine8080:
         :param operands:
         :return:
         """
-        self._internal_xor(operands[0])
+        self._internal_or(operands[0], lambda a,b: a ^ b)
 
     def mvi(self, opcode, operands):
         """
@@ -699,7 +699,22 @@ class Machine8080:
         self._registers[Registers.L] = self._registers[Registers.E]
         self._registers[Registers.E] = tmp
 
+    def ora(self, opcode, *args):
+        """
+        Inclusive OR between register encoded in opcode and Accumulator
 
+        Carry and Aux Carry are cleared
+        Zero, sign, parity are set appropriately
+        :param opcode:
+        :param args:
+        :return:
+        """
+        reg = Registers.get_register_from_opcode(opcode, 0)
+        if reg == Registers.M:
+            val, *_ = self.read_memory(self._registers.get_address_from_pair(Registers.H), 1)
+        else:
+            val = self._registers[reg]
+        self._internal_or(val, lambda a,b: a | b)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
