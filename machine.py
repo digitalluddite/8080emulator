@@ -92,7 +92,7 @@ class Machine8080:
             OpCode(int('1f', 16), 1, "RAR", "none", self.unhandled_instruction),
             OpCode(int('20', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('21', 16), 3, "LXI H", "immediate", self.lxi),
-            OpCode(int('22', 16), 3, "SHLD", "address", self.unhandled_instruction),
+            OpCode(int('22', 16), 3, "SHLD", "address", self.shld),
             OpCode(int('23', 16), 1, "INX H", "none", self.unhandled_instruction),
             OpCode(int('24', 16), 1, "INR H", "none", self.unhandled_instruction),
             OpCode(int('25', 16), 1, "DCR H", "none", self.unhandled_instruction),
@@ -650,6 +650,19 @@ class Machine8080:
         """
         address = (operands[1] << 8) | operands[0]
         self._registers[Registers.L], self._registers[Registers.H] = self.read_memory(address, 2)
+
+    def shld(self, opcodes, operands):
+        """
+        Content of L is stored in address at operands.
+        Content of H is stored in address+1
+
+        :param opcodes:
+        :param operands:
+        :return:
+        """
+        address = (operands[1] << 8) | operands[0]
+        self.write_memory(address, self._registers[Registers.L])
+        self.write_memory(address+1, self._registers[Registers.H])
 
 
 if __name__ == "__main__":

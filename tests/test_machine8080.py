@@ -9,7 +9,7 @@ from cpu import Registers, Flags
 class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
-        self.machine.load("rom")
+        self.machine.load("../rom")
         logging.basicConfig(level=logging.INFO)
 
     def test_read_memory(self):
@@ -370,3 +370,11 @@ class TestMachine8080(TestCase):
 
         self.assertEqual(self.machine._registers[Registers.L], 0x34, f'L register didn\'t get 0x34')
         self.assertEqual(self.machine._registers[Registers.H], 0xaf, f'H register didn\'t get 0xaf')
+
+    def test_shld(self):
+        self.set_register(Registers.L, 0x9a)
+        self.set_register(Registers.H, 0xe1)
+        self.machine.shld(0x22, (0xee, 0x54))
+        l, h = self.machine.read_memory(0x54ee, 2)
+        self.assertEqual(l, 0x9a, 'First memory byte not 0x9a')
+        self.assertEqual(h, 0xe1, 'Second memory byte not 0xe1')
