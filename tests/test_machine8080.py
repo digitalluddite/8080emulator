@@ -378,3 +378,14 @@ class TestMachine8080(TestCase):
         l, h = self.machine.read_memory(0x54ee, 2)
         self.assertEqual(l, 0x9a, 'First memory byte not 0x9a')
         self.assertEqual(h, 0xe1, 'Second memory byte not 0xe1')
+
+    def test_xchg(self):
+        self.set_register(Registers.H, 0x12)
+        self.set_register(Registers.L, 0x55)
+        self.set_register(Registers.D, 0x54)
+        self.set_register(Registers.E, 0xae)
+        self.machine.xchg(0xeb)
+        self.assertEqual(self.machine._registers[Registers.D], 0x12)
+        self.assertEqual(self.machine._registers[Registers.E], 0x55)
+        self.assertEqual(self.machine._registers[Registers.H], 0x54)
+        self.assertEqual(self.machine._registers[Registers.L], 0xae)

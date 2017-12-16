@@ -293,7 +293,7 @@ class Machine8080:
             OpCode(int('e8', 16), 1, "RPI", "none", self.unhandled_instruction),
             OpCode(int('e9', 16), 1, "PCHL", "none", self.pchl),
             OpCode(int('ea', 16), 3, "JPE", "address", self.conditional_jmp),
-            OpCode(int('eb', 16), 1, "XCHG", "none", self.unhandled_instruction),
+            OpCode(int('eb', 16), 1, "XCHG", "none", self.xchg),
             OpCode(int('ec', 16), 3, "CPE", "address", self.unhandled_instruction),
             OpCode(int('ed', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('ee', 16), 2, "XRI", "immediate", self.unhandled_instruction),
@@ -664,6 +664,20 @@ class Machine8080:
         self.write_memory(address, self._registers[Registers.L])
         self.write_memory(address+1, self._registers[Registers.H])
 
+    def xchg(self, opcode, *args):
+        """
+        swap H and D registers
+        swap L and E registers
+        :param opcode:
+        :param args:
+        :return:
+        """
+        tmp = self._registers[Registers.H]
+        self._registers[Registers.H] = self._registers[Registers.D]
+        self._registers[Registers.D] = tmp
+        tmp = self._registers[Registers.L]
+        self._registers[Registers.L] = self._registers[Registers.E]
+        self._registers[Registers.E] = tmp
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
