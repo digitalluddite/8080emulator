@@ -549,4 +549,16 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.CARRY, "Carry", 1)
         self.machine.stc()
         self._test_flag(Flags.CARRY, "Carry", 1)
-        
+
+    def test_cma(self):
+        self.set_register(Registers.A, 0x14) # 0001 0100  => 1110 1011
+        self.machine.cma()
+        self.assertEqual(self.machine._registers[Registers.A], 0xEB,
+                         f'REG A = {self.machine._registers[Registers.A]:02X} not 0xEB')
+        self.machine.cma()
+        self.assertEqual(self.machine._registers[Registers.A], 0x14)
+        self.set_register(Registers.A, 0x00)
+        self.machine.cma()
+        self.assertEqual(self.machine._registers[Registers.A], 0xff)
+        self.machine.cma()
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)

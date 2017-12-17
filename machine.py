@@ -105,7 +105,7 @@ class Machine8080:
             OpCode(int('2c', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('2d', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('2e', 16), 2, "MVI L,", "immediate", self.mvi),
-            OpCode(int('2f', 16), 1, "CMA", "none", self.unhandled_instruction),
+            OpCode(int('2f', 16), 1, "CMA", "none", self.cma),
             OpCode(int('30', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('31', 16), 3, "LXI SP", "immediate", self.lxi),
             OpCode(int('32', 16), 3, "STA", "address", self.sta),
@@ -772,6 +772,10 @@ class Machine8080:
         """
         self._flags.set(Flags.CARRY)
 
+    def cma(self, *args):
+        """Complement the contents of the accumulator
+        """
+        self._registers[Registers.A] ^= 0xff
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
