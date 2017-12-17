@@ -113,7 +113,7 @@ class Machine8080:
             OpCode(int('34', 16), 1, "INR M", "none", self.unhandled_instruction),
             OpCode(int('35', 16), 1, "DCR M", "none", self.unhandled_instruction),
             OpCode(int('36', 16), 2, "MVI M,", "immediate", self.mvi),
-            OpCode(int('37', 16), 1, "STC", "none", self.unhandled_instruction),
+            OpCode(int('37', 16), 1, "STC", "none", self.stc),
             OpCode(int('38', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('39', 16), 1, "DAD SP", "none", self.unhandled_instruction),
             OpCode(int('3a', 16), 3, "LDA", "address", self.lda),
@@ -121,7 +121,7 @@ class Machine8080:
             OpCode(int('3c', 16), 1, "INR A", "none", self.unhandled_instruction),
             OpCode(int('3d', 16), 1, "DCR", "none", self.unhandled_instruction),
             OpCode(int('3e', 16), 2, "MVI A,", "immediate", self.mvi),
-            OpCode(int('3f', 16), 1, "CMC", "none", self.unhandled_instruction),
+            OpCode(int('3f', 16), 1, "CMC", "none", self.cmc),
             OpCode(int('40', 16), 1, "MOV B,B", "none", self.mov),
             OpCode(int('41', 16), 1, "MOV B,C", "none", self.mov),
             OpCode(int('42', 16), 1, "MOV B,D", "none", self.mov),
@@ -753,6 +753,24 @@ class Machine8080:
         lo, hi = self.read_memory(self._sp, 2)
         self._pc = (hi << 8) | lo
         self._sp += 2
+
+    def cmc(self, *args):
+        """
+        Complement carry bit
+        :return:
+        """
+        if self._flags[Flags.CARRY] == 1:
+            self._flags.clear(Flags.CARRY)
+        else:
+            self._flags.set(Flags.CARRY)
+
+    def stc(self, *args):
+        """
+        Set Carry bit to 1
+        :param args:
+        :return:
+        """
+        self._flags.set(Flags.CARRY)
 
 
 if __name__ == "__main__":

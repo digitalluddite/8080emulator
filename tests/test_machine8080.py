@@ -9,7 +9,7 @@ from cpu import Registers, Flags
 class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
-        self.machine.load("rom")
+        self.machine.load("../rom")
         logging.basicConfig(level=logging.INFO)
 
     def test_read_memory(self):
@@ -535,3 +535,18 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._pc, 0x8899)
         self.assertEqual(self.machine._sp, 0x1122)
 
+    def test_cmc(self):
+        self.set_flag(Flags.CARRY, 0)
+        opcode = 0x3f
+        self.machine.cmc(opcode)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self.machine.cmc(opcode)
+        self._test_flag(Flags.CARRY, "Carry", 0)
+
+    def test_stc(self):
+        self.set_flag(Flags.CARRY, 0)
+        self.machine.stc()
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self.machine.stc()
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        
