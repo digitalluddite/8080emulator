@@ -259,7 +259,7 @@ class Machine8080:
             OpCode(int('c6', 16), 2, "ADI", "immediate", self.unhandled_instruction),
             OpCode(int('c7', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('c8', 16), 1, "RZ", "none", self.unhandled_instruction),
-            OpCode(int('c9', 16), 1, "RET", "none", self.unhandled_instruction),
+            OpCode(int('c9', 16), 1, "RET", "none", self.ret),
             OpCode(int('ca', 16), 3, "JZ", "address", self.conditional_jmp),
             OpCode(int('cb', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('cc', 16), 3, "CZ", "address", self.unhandled_instruction),
@@ -717,7 +717,13 @@ class Machine8080:
         self._internal_or(val, lambda a,b: a | b)
 
     def ori(self, opcode, operands):
-        pass
+        """
+        Logical OR with immediate value
+        :param opcode:
+        :param operands:
+        :return:
+        """
+        self._internal_or(operands[0], lambda  a,b: a | b)
 
     def call(self, opcode, operands):
         """
@@ -734,6 +740,19 @@ class Machine8080:
         self.write_memory(self._sp-2, self._pc & 0xFF)
         self._sp -= 2
         self._pc = (operands[1] << 8) | operands[0]
+
+    def ret(self, opcode, *args):
+        """
+        (PCL) <- (SP)
+        (PCH) <- (SP)+1
+        (SP) <- (SP)+2
+
+        :param opcode:
+        :param args:
+        """
+        lo, hi = self.read_memory(self._sp, 2)
+        self._pc = (hi << 8) | lo
+        self._sp += 2
 
 
 if __name__ == "__main__":

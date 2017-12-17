@@ -421,7 +421,6 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.PARITY, "Parity", 1)
         self._test_flag(Flags.SIGN, "Sign", 0)
 
-<<<<<<< HEAD
     def test_ora(self):
         # 1101 0110
         # 0100 1000  => 1101 1110
@@ -465,6 +464,36 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers[Registers.A], 0x00)
         self._test_flag(Flags.ZERO, "Zero", 1)
 
+    def test_ori(self):
+        opcode = 0xf6
+        self.set_flag(Flags.CARRY, 1)
+        self.set_flag(Flags.AUX_CARRY, 1)
+        self.set_flag(Flags.ZERO, 1)
+        #  1001 1100
+        #  0100 1111  => 1101 1111
+        self.set_flag(Flags.SIGN, 0)
+        self.set_flag(Flags.PARITY, 1)
+        self.set_register(Registers.A, 0x4f)
+        self.machine.ori(opcode, (0x9c,))
+        self.assertEqual(self.machine._registers[Registers.A], 0xdf)
+        self._test_flag(Flags.CARRY, "CARRY", 0)
+        self._test_flag(Flags.AUX_CARRY, "AUX CARRY", 0)
+        self._test_flag(Flags.PARITY, "PARITY", 0)
+        self._test_flag(Flags.ZERO, "ZERO", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        # 0110 1100
+        # 0000 1111
+        self.set_register(Registers.A, 0x0f)
+        self.machine.ori(opcode, (0x6c,))
+        self._test_flag(Flags.PARITY, "PARITY", 1)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.ZERO, "ZERO", 0)
+
+        self.set_register(Registers.A, 0x00)
+        self.machine.ori(opcode, (0x00,))
+        self._test_flag(Flags.ZERO, "ZERO", 1)
+
     def test_call(self):
         """
         Invoke a function
@@ -482,4 +511,27 @@ class TestMachine8080(TestCase):
         lo, hi = self.machine.read_memory(self.machine._sp, 2)
         self.assertEqual(hi, 0x88, f'Invalid stack HI {hi:02X} not 0x88')
         self.assertEqual(lo, 0xab, f'Invalid stack LO {lo:02X} not 0xab')
+
+    def test_ret(self):
+        """
+        (PCL) <- (SP)
+        (PCH) <- (SP)+1
+        (SP) <- (SP)+2
+        """
+        self.machine.write_memory(0x6666, 0x98)
+        self.machine.write_memory(0x6667, 0x9A)
+        self.machine._sp = 0x6666
+        self.machine.ret(0xc9)
+        self.assertEqual(self.machine._pc, 0x9a98)
+        self.assertEqual(self.machine._sp, 0x6668)
+
+    def test_call_ret(self):
+        self.machine._sp = 0x1122
+        self.machine._pc = 0x8899
+        self.machine.call(0xcd, (0xab, 0xcd))
+        self.assertEqual(self.machine._pc, 0xcdab)
+        self.assertEqual(self.machine._sp, 0x1120)
+        self.machine.ret(0xc9)
+        self.assertEqual(self.machine._pc, 0x8899)
+        self.assertEqual(self.machine._sp, 0x1122)
 
