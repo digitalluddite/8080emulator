@@ -307,7 +307,7 @@ class Machine8080:
             OpCode(int('e0', 16), 1, "RPO", "none", self.conditional_ret),
             OpCode(int('e1', 16), 1, "POP H", "none", self.pop_pair),
             OpCode(int('e2', 16), 3, "JPO", "address", self.conditional_jmp),
-            OpCode(int('e3', 16), 1, "XTHL", "none", self.unhandled_instruction),
+            OpCode(int('e3', 16), 1, "XTHL", "none", self.xthl),
             OpCode(int('e4', 16), 3, "CPO", "address", self.conditional_call),
             OpCode(int('e5', 16), 1, "PUSH H", "none", self.push_pair),
             OpCode(int('e6', 16), 2, "ANI", "immediate", self.unhandled_instruction),
@@ -897,6 +897,20 @@ class Machine8080:
         """
         self._flags.flags, self._registers[Registers.A] = self.read_memory(self._sp, 2)
         self._sp += 2
+
+    def xthl(self):
+        """"
+        (L)  <->  (SP)
+        (H)  <->  (SP)+1
+        """
+        l, h = self.read_memory(self._sp, 2)
+        tmp = self._registers[Registers.L]
+        self._registers[Registers.L] = l
+        self.write_memory(self._sp, tmp)
+
+        tmp = self._registers[Registers.H]
+        self._registers[Registers.H] = h
+        self.write_memory(self._sp+1, tmp)
 
 
 if __name__ == "__main__":

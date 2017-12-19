@@ -701,3 +701,19 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.CARRY, "Carry", 1)
         self._test_flag(Flags.SIGN, "Sign", 1)
         self.assertEqual(self.machine._registers[Registers.A], 0x3e)
+
+    def test_xthl(self):
+        self.machine._sp = 0x5555
+        i = 0
+        for b in [0x11, 0x44, 0xa0, 0xe3]:
+            self.machine.write_memory(self.machine._sp + i, b)
+            i += 1
+        self.set_register(Registers.H, 0xf0)
+        self.set_register(Registers.L, 0xe3)
+        self.machine.xthl()
+
+        l, h = self.machine.read_memory(self.machine._sp, 2)
+        self.assertEqual(l, 0xe3)
+        self.assertEqual(h, 0xf0)
+        self.assertEqual(self.machine._registers[Registers.H], 0x44)
+        self.assertEqual(self.machine._registers[Registers.L], 0x11)
