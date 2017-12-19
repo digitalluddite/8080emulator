@@ -321,7 +321,7 @@ class Machine8080:
             OpCode(int('ee', 16), 2, "XRI", "immediate", self.xri),
             OpCode(int('ef', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('f0', 16), 1, "RP", "none", self.conditional_ret),
-            OpCode(int('f1', 16), 1, "POP PSW", "none", self.unhandled_instruction),
+            OpCode(int('f1', 16), 1, "POP PSW", "none", self.pop_psw),
             OpCode(int('f2', 16), 3, "JP", "address", self.conditional_jmp),
             OpCode(int('f3', 16), 1, "DI", "none", self.unhandled_instruction),
             OpCode(int('f4', 16), 3, "CP", "address", self.conditional_call),
@@ -886,6 +886,16 @@ class Machine8080:
         """
         hi, lo = self._registers.get_pairs((opcode >> 4) & 0x3)
         self._registers[lo], self._registers[hi] = self.read_memory(self._sp, 2)
+        self._sp += 2
+
+    def pop_psw(self, *args):
+        """
+        flags <- (sp)
+        A     <- (sp+1)
+        (sp)  <- (sp+2)
+        :param args:
+        """
+        self._flags.flags, self._registers[Registers.A] = self.read_memory(self._sp, 2)
         self._sp += 2
 
 

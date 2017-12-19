@@ -687,3 +687,17 @@ class TestMachine8080(TestCase):
             exhi, exlo = expected.pop()
             self.assertEqual(self.machine._registers[hi], exhi)
             self.assertEqual(self.machine._registers[lo], exlo)
+
+    def test_pop_psw(self):
+        self.set_register(Registers.A, 0x3e)
+        self.set_flag(Flags.CARRY, 1)
+        self.set_flag(Flags.SIGN, 1)
+        self.machine._sp = 0x3333
+        self.machine.push_psw()
+        self.set_flag(Flags.CARRY, 0)
+        self.set_flag(Flags.SIGN, 0)
+        self.set_register(Registers.A, 0)
+        self.machine.pop_psw()
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x3e)
