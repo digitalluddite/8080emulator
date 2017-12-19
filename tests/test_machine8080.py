@@ -608,19 +608,6 @@ class TestMachine8080(TestCase):
             self.assertEqual(self.machine._sp, 0x4442)
             self.assertEqual(self.machine._pc, 0xaa22)
 
-    def test_conditional_ret(self):
-        tests = [(0xc0, Flags.ZERO, 0), (0xc8, Flags.ZERO, 1),
-                 (0xd0, Flags.CARRY, 0), (0xd8, Flags.CARRY, 1),
-                 (0xe0, Flags.PARITY, 0), (0xe8, Flags.PARITY, 1),
-                 (0xf0, Flags.SIGN, 0), (0xf8, Flags.SIGN, 1)]
-        for op, flag, val in tests:
-            if val == 0:
-                self.set_flag(flag, 1)
-            else:
-                self.set_flag(flag, 0)
-            #self.machine._sp = 0x1122
-            #self.machine
-
     def test_push_pair(self):
         """
         ((SP) - 1) <- (rh)
@@ -638,3 +625,29 @@ class TestMachine8080(TestCase):
             bl, bh = self.machine.read_memory(self.machine._sp, 2)
             self.assertEqual(bl, 0xef)
             self.assertEqual(bh, 0x33)
+
+    def test_conditional_ret(self):
+        tests = [(0xc0, Flags.ZERO, 0), (0xc8, Flags.ZERO, 1),
+                 (0xd0, Flags.CARRY, 0), (0xd8, Flags.CARRY, 1),
+                 (0xe0, Flags.PARITY, 0), (0xe8, Flags.PARITY, 1),
+                 (0xf0, Flags.SIGN, 0), (0xf8, Flags.SIGN, 1)]
+        for op, flag, val in tests:
+            # set flag opposite to expected, verify return doesn't happen
+            if val == 0:
+                self.set_flag(flag, 1)
+            else:
+                self.set_flag(flag, 0)
+            self.machine._sp = 0x1122
+            self.machine._pc = 0x0001
+            self.set_register(Registers.B, 0x22)
+            self.set_register(Registers.C, 0xab)
+            self.machine.push_pair(0xc5)  # push B,C register pair
+            self.machine.conditional_ret(op)
+            self.assertNotEqual(self.machine._sp, 0x1122)
+            self.assertEqual(self.machine._pc, 0x0001)  # PC doesn't change
+
+            # set flag to expected value and try again
+            self.set_flag(flag, val)
+            self.machine.conditional_ret(op)
+            self.assertEqual(self.machine._sp, 0x1122)
+            self.assertEqual(self.machine._pc, 0x22ab)

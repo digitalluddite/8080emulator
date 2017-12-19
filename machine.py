@@ -813,7 +813,10 @@ class Machine8080:
         :param args:
         :return:
         """
-        pass
+        bitflag = (opcode >> 3) & 0x7
+        cf = self._condition_flags[bitflag]
+        if self._flags[cf.flag] == cf.val:
+            self.ret(opcode)
 
     def cmc(self, *args):
         """
