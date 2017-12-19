@@ -651,3 +651,19 @@ class TestMachine8080(TestCase):
             self.machine.conditional_ret(op)
             self.assertEqual(self.machine._sp, 0x1122)
             self.assertEqual(self.machine._pc, 0x22ab)
+
+    def tests_push_psw(self):
+        self.machine._registers[Registers.A] = 0x2f
+        self.set_flag(Flags.PARITY, 1)
+        self.set_flag(Flags.ZERO, 1)
+        self.machine._sp = 0x2345
+        self.machine.push_psw()
+        f, a = self.machine.read_memory(self.machine._sp, 2)
+        self.assertEqual(self.machine._flags.flags, f)
+        self.assertEqual(self.machine._registers[Registers.A], a)
+
+        self.set_flag(Flags.PARITY, 0)
+        self.machine.push_psw()
+        f, a = self.machine.read_memory(self.machine._sp, 2)
+        self.assertEqual(self.machine._flags.flags, f)
+        self.assertEqual(self.machine._registers[Registers.A], a)

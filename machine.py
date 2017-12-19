@@ -325,7 +325,7 @@ class Machine8080:
             OpCode(int('f2', 16), 3, "JP", "address", self.conditional_jmp),
             OpCode(int('f3', 16), 1, "DI", "none", self.unhandled_instruction),
             OpCode(int('f4', 16), 3, "CP", "address", self.conditional_call),
-            OpCode(int('f5', 16), 1, "PUSH PSW", "none", self.unhandled_instruction),
+            OpCode(int('f5', 16), 1, "PUSH PSW", "none", self.push_psw),
             OpCode(int('f6', 16), 2, "ORI", "immediate", self.ori),
             OpCode(int('f7', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('f8', 16), 1, "RM", "none", self.conditional_ret),
@@ -855,6 +855,24 @@ class Machine8080:
         self.write_memory(self._sp - 2, self._registers[rl])
         self._sp -= 2
 
+    def push_psw(self, *args):
+        """
+        ((SP)-1)   <- (A)
+        ((SP)-2)
+            0  <- CY
+            1  <- 1
+            2  <- P
+            3  <- 0
+            4  <- AC
+            5  <- 0
+            6  <- Z
+            7  <- S
+        (SP) <- (SP)-2
+        :param args:
+        """
+        self.write_memory(self._sp - 1, self._registers[Registers.A])
+        self.write_memory(self._sp - 2, self._flags.flags)
+        self._sp -= 2
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
