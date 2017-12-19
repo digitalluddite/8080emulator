@@ -41,6 +41,7 @@ class TestMachine8080(TestCase):
         self.machine.stax(0x02)
         self.assertEqual(self.machine.read_memory(0x1000, 1)[0], 0xAA)
 
+
         self.assertNotEqual(self.machine.read_memory(0x01FF, 1)[0], 0xAA)  # make sure it's not what we're setting
         self.machine._registers[Registers.A] = 0xAA
         self.machine._registers[Registers.D] = 0x01
@@ -84,6 +85,7 @@ class TestMachine8080(TestCase):
         self.machine._flags.clear(flag)
         self.machine._pc = 0
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
+
         self.assertNotEqual(self.machine._pc, 0x4422, f'{bitname} bit 0 should not have jumped')
         self.machine._flags.set(flag)
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
@@ -100,6 +102,7 @@ class TestMachine8080(TestCase):
         self.machine._flags.set(flag)
         self.machine._pc = 0
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
+
         self.assertNotEqual(self.machine._pc, 0x4422, f'{bitname} bit 1 should not have jumped')
         self.machine._flags.clear(flag)
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
