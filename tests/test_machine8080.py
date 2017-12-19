@@ -563,3 +563,47 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers[Registers.A], 0xff)
         self.machine.cma()
         self.assertEqual(self.machine._registers[Registers.A], 0x00)
+
+    def test_conditional_call(self):
+        """
+        Instruction format 11CCC100
+
+        NZ -- 000  (not zero)
+        Z  -- 001  (zero)
+        NC -- 010  (no carry)
+        C  -- 011  (carry)
+        PO -- 100  (parity odd)
+        PE -- 101  (parity even)
+        P  -- 110  (positive)
+        M  -- 111  (negative/minus)
+
+        if CCC:
+            ((SP) - 1) <-  PCH
+            ((SP) - 2) <-  PCL
+            (SP) <- (SP) - 2
+            (PC) <- (operands[1])(operands[0])
+
+        :param opcode:
+        :param operands:
+        """
+        #  Tests:  (opcode, Flag, flag-val)...
+        tests = [(0xc4, Flags.ZERO, 0), (0xcc, Flags.ZERO, 1),
+                 (0xd4, Flags.CARRY, 0), (0xdc, Flags.CARRY, 1),
+                 (0xe4, Flags.PARITY, 0), (0xec, Flags.PARITY, 1),
+                 (0xf4, Flags.SIGN, 0), (0xfc, Flags.SIGN, 1)]
+        for op, flag, val in tests:
+            # turn off expected flag, make sure the call doesn't execute
+            if val == 0:
+                self.set_flag(flag,1)
+            else:
+                self.set_flag(flag,0)
+            self.machine._sp = 0x4444
+            self.machine._pc = 0x6666
+            self.machine.conditional_call(op, (0x22, 0xaa))
+            self.assertEqual(self.machine._pc, 0x6666)
+            self.assertEqual(self.machine._sp, 0x4444)
+            # turn on flag and verify conditional jump works
+            self.set_flag(flag, val)
+            self.machine.conditional_call(op, (0x22, 0xaa))
+            self.assertEqual(self.machine._sp, 0x4442)
+            self.assertEqual(self.machine._pc, 0xaa22)
