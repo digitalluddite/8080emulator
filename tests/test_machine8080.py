@@ -667,3 +667,23 @@ class TestMachine8080(TestCase):
         f, a = self.machine.read_memory(self.machine._sp, 2)
         self.assertEqual(self.machine._flags.flags, f)
         self.assertEqual(self.machine._registers[Registers.A], a)
+
+    def test_pop_pair(self):
+        base = 0x0000
+        expected = []
+        self.machine._sp = 0x2000
+        tests = [(0xc1, 0xc5, 0), (0xd1, 0xd5, 1), (0xe1, 0xe5, 2)]
+        for op,push_op, pair in tests:
+            hi,lo = self.machine._registers.get_pairs(pair)
+            self.set_register(hi, base+1)
+            self.set_register(lo, base+2)
+            expected.append((base+1, base+2))
+            self.machine.push_pair(push_op)
+            base += 2
+
+        for op, _, pair in tests[::-1]:
+            hi, lo = self.machine._registers.get_pairs(pair)
+            self.machine.pop_pair(op)
+            exhi, exlo = expected.pop()
+            self.assertEqual(self.machine._registers[hi], exhi)
+            self.assertEqual(self.machine._registers[lo], exlo)

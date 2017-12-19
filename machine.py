@@ -273,7 +273,7 @@ class Machine8080:
             OpCode(int('be', 16), 1, "CMP M", "none", self.unhandled_instruction),
             OpCode(int('bf', 16), 1, "CMP A", "none", self.unhandled_instruction),
             OpCode(int('c0', 16), 1, "RNZ", "none", self.conditional_ret),
-            OpCode(int('c1', 16), 1, "POP B", "none", self.unhandled_instruction),
+            OpCode(int('c1', 16), 1, "POP B", "none", self.pop_pair),
             OpCode(int('c2', 16), 3, "JNZ", "address", self.conditional_jmp),
             OpCode(int('c3', 16), 3, "JMP", "address", self.jmp),
             OpCode(int('c4', 16), 3, "CNZ", "address", self.conditional_call),
@@ -289,7 +289,7 @@ class Machine8080:
             OpCode(int('ce', 16), 2, "ACI", "immediate", self.unhandled_instruction),
             OpCode(int('cf', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('d0', 16), 1, "RNC", "none", self.conditional_ret),
-            OpCode(int('d1', 16), 1, "POP D", "none", self.unhandled_instruction),
+            OpCode(int('d1', 16), 1, "POP D", "none", self.pop_pair),
             OpCode(int('d2', 16), 3, "JNC", "address", self.conditional_jmp),
             OpCode(int('d3', 16), 2, "OUT", "immediate", self.unhandled_instruction),
             OpCode(int('d4', 16), 3, "CNC", "address", self.conditional_call),
@@ -305,7 +305,7 @@ class Machine8080:
             OpCode(int('de', 16), 2, "SBI", "immediate", self.unhandled_instruction),
             OpCode(int('df', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('e0', 16), 1, "RPO", "none", self.conditional_ret),
-            OpCode(int('e1', 16), 1, "POP H", "none", self.unhandled_instruction),
+            OpCode(int('e1', 16), 1, "POP H", "none", self.pop_pair),
             OpCode(int('e2', 16), 3, "JPO", "address", self.conditional_jmp),
             OpCode(int('e3', 16), 1, "XTHL", "none", self.unhandled_instruction),
             OpCode(int('e4', 16), 3, "CPO", "address", self.conditional_call),
@@ -873,6 +873,21 @@ class Machine8080:
         self.write_memory(self._sp - 1, self._registers[Registers.A])
         self.write_memory(self._sp - 2, self._flags.flags)
         self._sp -= 2
+
+    def pop_pair(self, opcode, *args):
+        """
+        Instruction format:  11RP0001
+
+        (rl) <- (SP)
+        (rh) <- (sp) +1
+        (sp) <- (sp) + 2
+        :param opcode:
+        :param args:
+        """
+        hi, lo = self._registers.get_pairs((opcode >> 4) & 0x3)
+        self._registers[lo], self._registers[hi] = self.read_memory(self._sp, 2)
+        self._sp += 2
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
