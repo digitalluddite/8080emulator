@@ -607,3 +607,34 @@ class TestMachine8080(TestCase):
             self.machine.conditional_call(op, (0x22, 0xaa))
             self.assertEqual(self.machine._sp, 0x4442)
             self.assertEqual(self.machine._pc, 0xaa22)
+
+    def test_conditional_ret(self):
+        tests = [(0xc0, Flags.ZERO, 0), (0xc8, Flags.ZERO, 1),
+                 (0xd0, Flags.CARRY, 0), (0xd8, Flags.CARRY, 1),
+                 (0xe0, Flags.PARITY, 0), (0xe8, Flags.PARITY, 1),
+                 (0xf0, Flags.SIGN, 0), (0xf8, Flags.SIGN, 1)]
+        for op, flag, val in tests:
+            if val == 0:
+                self.set_flag(flag, 1)
+            else:
+                self.set_flag(flag, 0)
+            #self.machine._sp = 0x1122
+            #self.machine
+
+    def test_push_pair(self):
+        """
+        ((SP) - 1) <- (rh)
+        ((SP) - 2)  <- (rl)
+        (SP)       <- (SP) - 2
+        :return:
+        """
+        for op, pair in [(0xc5, 0), (0xd5, 1), (0xe5, 2)]:
+            hi, lo = self.machine._registers.get_pairs(pair)
+            self.set_register(hi, 0x33)
+            self.set_register(lo, 0xef)
+            self.machine._sp = 0x4444
+            self.machine.push_pair(op)
+            self.assertEqual(self.machine._sp, 0x4442)
+            bl, bh = self.machine.read_memory(self.machine._sp, 2)
+            self.assertEqual(bl, 0xef)
+            self.assertEqual(bh, 0x33)

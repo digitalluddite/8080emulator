@@ -272,15 +272,15 @@ class Machine8080:
             OpCode(int('bd', 16), 1, "CMP L", "none", self.unhandled_instruction),
             OpCode(int('be', 16), 1, "CMP M", "none", self.unhandled_instruction),
             OpCode(int('bf', 16), 1, "CMP A", "none", self.unhandled_instruction),
-            OpCode(int('c0', 16), 1, "RNZ", "none", self.unhandled_instruction),
+            OpCode(int('c0', 16), 1, "RNZ", "none", self.conditional_ret),
             OpCode(int('c1', 16), 1, "POP B", "none", self.unhandled_instruction),
             OpCode(int('c2', 16), 3, "JNZ", "address", self.conditional_jmp),
             OpCode(int('c3', 16), 3, "JMP", "address", self.jmp),
             OpCode(int('c4', 16), 3, "CNZ", "address", self.conditional_call),
-            OpCode(int('c5', 16), 1, "PUSH B", "none", self.unhandled_instruction),
+            OpCode(int('c5', 16), 1, "PUSH B", "none", self.push_pair),
             OpCode(int('c6', 16), 2, "ADI", "immediate", self.unhandled_instruction),
             OpCode(int('c7', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('c8', 16), 1, "RZ", "none", self.unhandled_instruction),
+            OpCode(int('c8', 16), 1, "RZ", "none", self.conditional_ret),
             OpCode(int('c9', 16), 1, "RET", "none", self.ret),
             OpCode(int('ca', 16), 3, "JZ", "address", self.conditional_jmp),
             OpCode(int('cb', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
@@ -288,15 +288,15 @@ class Machine8080:
             OpCode(int('cd', 16), 3, "CALL", "address", self.call),
             OpCode(int('ce', 16), 2, "ACI", "immediate", self.unhandled_instruction),
             OpCode(int('cf', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('d0', 16), 1, "RNC", "none", self.unhandled_instruction),
+            OpCode(int('d0', 16), 1, "RNC", "none", self.conditional_ret),
             OpCode(int('d1', 16), 1, "POP D", "none", self.unhandled_instruction),
             OpCode(int('d2', 16), 3, "JNC", "address", self.conditional_jmp),
             OpCode(int('d3', 16), 2, "OUT", "immediate", self.unhandled_instruction),
             OpCode(int('d4', 16), 3, "CNC", "address", self.conditional_call),
-            OpCode(int('d5', 16), 1, "PUSH D", "none", self.unhandled_instruction),
+            OpCode(int('d5', 16), 1, "PUSH D", "none", self.push_pair),
             OpCode(int('d6', 16), 2, "SUI", "immediate", self.unhandled_instruction),
             OpCode(int('d7', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('d8', 16), 1, "RC", "none", self.unhandled_instruction),
+            OpCode(int('d8', 16), 1, "RC", "none", self.conditional_ret),
             OpCode(int('d9', 16), 1, "UNKONWN", "none", self.unhandled_instruction),
             OpCode(int('da', 16), 3, "JC", "address", self.conditional_jmp),
             OpCode(int('db', 16), 2, "IN", "immediate", self.unhandled_instruction),
@@ -304,15 +304,15 @@ class Machine8080:
             OpCode(int('dd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('de', 16), 2, "SBI", "immediate", self.unhandled_instruction),
             OpCode(int('df', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('e0', 16), 1, "RPO", "none", self.unhandled_instruction),
+            OpCode(int('e0', 16), 1, "RPO", "none", self.conditional_ret),
             OpCode(int('e1', 16), 1, "POP H", "none", self.unhandled_instruction),
             OpCode(int('e2', 16), 3, "JPO", "address", self.conditional_jmp),
             OpCode(int('e3', 16), 1, "XTHL", "none", self.unhandled_instruction),
             OpCode(int('e4', 16), 3, "CPO", "address", self.conditional_call),
-            OpCode(int('e5', 16), 1, "PUSH H", "none", self.unhandled_instruction),
+            OpCode(int('e5', 16), 1, "PUSH H", "none", self.push_pair),
             OpCode(int('e6', 16), 2, "ANI", "immediate", self.unhandled_instruction),
             OpCode(int('e7', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('e8', 16), 1, "RPI", "none", self.unhandled_instruction),
+            OpCode(int('e8', 16), 1, "RPE", "none", self.conditional_ret),
             OpCode(int('e9', 16), 1, "PCHL", "none", self.pchl),
             OpCode(int('ea', 16), 3, "JPE", "address", self.conditional_jmp),
             OpCode(int('eb', 16), 1, "XCHG", "none", self.xchg),
@@ -320,7 +320,7 @@ class Machine8080:
             OpCode(int('ed', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('ee', 16), 2, "XRI", "immediate", self.xri),
             OpCode(int('ef', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('f0', 16), 1, "RP", "none", self.unhandled_instruction),
+            OpCode(int('f0', 16), 1, "RP", "none", self.conditional_ret),
             OpCode(int('f1', 16), 1, "POP PSW", "none", self.unhandled_instruction),
             OpCode(int('f2', 16), 3, "JP", "address", self.conditional_jmp),
             OpCode(int('f3', 16), 1, "DI", "none", self.unhandled_instruction),
@@ -328,7 +328,7 @@ class Machine8080:
             OpCode(int('f5', 16), 1, "PUSH PSW", "none", self.unhandled_instruction),
             OpCode(int('f6', 16), 2, "ORI", "immediate", self.ori),
             OpCode(int('f7', 16), 1, "RST", "none", self.unhandled_instruction),
-            OpCode(int('f8', 16), 1, "RM", "none", self.unhandled_instruction),
+            OpCode(int('f8', 16), 1, "RM", "none", self.conditional_ret),
             OpCode(int('f9', 16), 1, "SPHL", "none", self.unhandled_instruction),
             OpCode(int('fa', 16), 3, "JM", "address", self.conditional_jmp),
             OpCode(int('fb', 16), 1, "EI", "none", self.unhandled_instruction),
@@ -803,6 +803,18 @@ class Machine8080:
         self._pc = (hi << 8) | lo
         self._sp += 2
 
+    def conditional_ret(self, opcode, *args):
+        """
+        Instruction format:  11CCC000
+
+        if CCC:
+            ret
+        :param opcode:
+        :param args:
+        :return:
+        """
+        pass
+
     def cmc(self, *args):
         """
         Complement carry bit
@@ -817,7 +829,6 @@ class Machine8080:
         """
         Set Carry bit to 1
         :param args:
-        :return:
         """
         self._flags.set(Flags.CARRY)
 
@@ -825,6 +836,21 @@ class Machine8080:
         """Complement the contents of the accumulator
         """
         self._registers[Registers.A] ^= 0xff
+
+    def push_pair(self, opcode, *args):
+        """
+        Instruction: 11RP0101
+
+        ((SP) - 1) <- (rh)
+        ((SP)- 2)  <- (rl)
+        (SP)       <- (SP) - 2
+        :param opcode:
+        :param args:
+        """
+        rh, rl = self._registers.get_pairs((opcode >> 4) & 0x3)
+        self.write_memory(self._sp - 1, self._registers[rh])
+        self.write_memory(self._sp - 2, self._registers[rl])
+        self._sp -= 2
 
 
 if __name__ == "__main__":
