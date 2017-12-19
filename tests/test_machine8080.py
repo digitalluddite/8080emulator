@@ -14,64 +14,64 @@ class TestMachine8080(TestCase):
 
     def test_read_memory(self):
         membytes = self.machine.read_memory(0, 10)
-        self.assertTrue(len(membytes) == 10)
+        self.assertEqual(len(membytes), 10)
         with self.assertRaises(OutOfMemoryException):
             self.machine.read_memory(0xfff0, 100)
         membytes = self.machine.read_memory(0, 4)
-        self.assertTrue(membytes == [0x00, 0x00, 0x00, 0xc3])
+        self.assertEqual(membytes, [0x00, 0x00, 0x00, 0xc3])
 
     def test_mov(self):
         self.machine._registers[Registers.A] = 0x10
         self.machine._registers[Registers.B] = 0x33
         self.machine.mov(0x47)  # MOV B, A
-        self.assertTrue(self.machine._registers[Registers.A] == 0x10)
-        self.assertTrue(self.machine._registers[Registers.B] == 0x10)  # make sure source doesn't change
+        self.assertEqual(self.machine._registers[Registers.A], 0x10)
+        self.assertEqual(self.machine._registers[Registers.B], 0x10)  # make sure source doesn't change
 
         self.machine.write_memory(0xff00, 0xAA)
         self.machine._registers[Registers.H] = 0xff
         self.machine._registers[Registers.L] = 0x00
         self.machine.mov(0x7e)
-        self.assertTrue(self.machine._registers[Registers.A] == 0xAA)
+        self.assertEqual(self.machine._registers[Registers.A], 0xAA)
 
     def test_stax(self):
-        self.assertFalse(self.machine.read_memory(0x1000, 1)[0] == 0xAA)  # make sure it's not what we're setting
+        self.assertNotEqual(self.machine.read_memory(0x1000, 1)[0], 0xAA)  # make sure it's not what we're setting
         self.machine._registers[Registers.A] = 0xAA
         self.machine._registers[Registers.B] = 0x10
         self.machine._registers[Registers.C] = 0x00
         self.machine.stax(0x02)
-        self.assertTrue(self.machine.read_memory(0x1000, 1)[0] == 0xAA)
+        self.assertEqual(self.machine.read_memory(0x1000, 1)[0], 0xAA)
 
-        self.assertFalse(self.machine.read_memory(0x01FF, 1)[0] == 0xAA)  # make sure it's not what we're setting
+        self.assertNotEqual(self.machine.read_memory(0x01FF, 1)[0], 0xAA)  # make sure it's not what we're setting
         self.machine._registers[Registers.A] = 0xAA
         self.machine._registers[Registers.D] = 0x01
         self.machine._registers[Registers.E] = 0xFF
         self.machine.stax(0x12)
-        self.assertTrue(self.machine.read_memory(0x01FF, 1)[0] == 0xAA)
+        self.assertEqual(self.machine.read_memory(0x01FF, 1)[0], 0xAA)
 
     def test_ldax(self):
-        self.assertTrue(self.machine._registers[Registers.A] == 0x00)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
         self.machine.write_memory(0xFF17, 0x45)
         self.machine._registers[Registers.B] = 0xFF
         self.machine._registers[Registers.C] = 0x17
         self.machine.ldax(0x0a)
-        self.assertTrue(self.machine._registers[Registers.A] == 0x45)
+        self.assertEqual(self.machine._registers[Registers.A], 0x45)
 
         self.machine.write_memory(0x17FF, 0x2C)
         self.machine._registers[Registers.D] = 0x17
         self.machine._registers[Registers.E] = 0xFF
         self.machine.ldax(0x1a)
-        self.assertTrue(self.machine._registers[Registers.A] == 0x2c)
+        self.assertEqual(self.machine._registers[Registers.A], 0x2c)
 
     def test_pchl(self):
         self.machine._registers[Registers.H] = 0x54
         self.machine._registers[Registers.L] = 0x32
         self.machine.pchl(0xe9)
-        self.assertTrue(self.machine._pc == 0x5432)
+        self.assertEqual(self.machine._pc, 0x5432)
 
     def test_jmp(self):
         for lo,hi in [ (0x32, 0x23), (0x44, 0xff), (0x12, 0x43)]:
             self.machine.jmp(0xc3, (lo, hi))
-            self.assertTrue(self.machine._pc == ((hi << 8) | lo))
+            self.assertEqual(self.machine._pc, ((hi << 8) | lo))
 
     def _test_condjump_set(self, opcode, flag, bitname):
         """
@@ -84,10 +84,10 @@ class TestMachine8080(TestCase):
         self.machine._flags.clear(flag)
         self.machine._pc = 0
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
-        self.assertFalse(self.machine._pc == 0x4422, f'{bitname} bit 0 should not have jumped')
+        self.assertNotEqual(self.machine._pc, 0x4422, f'{bitname} bit 0 should not have jumped')
         self.machine._flags.set(flag)
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
-        self.assertTrue(self.machine._pc == 0x4422, f'{bitname} bit 1 should have jumped')
+        self.assertEqual(self.machine._pc, 0x4422, f'{bitname} bit 1 should have jumped')
 
     def _test_condjump_clear(self, opcode, flag, bitname):
         """
@@ -100,10 +100,10 @@ class TestMachine8080(TestCase):
         self.machine._flags.set(flag)
         self.machine._pc = 0
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
-        self.assertFalse(self.machine._pc == 0x4422, f'{bitname} bit 1 should not have jumped')
+        self.assertNotEqual(self.machine._pc, 0x4422, f'{bitname} bit 1 should not have jumped')
         self.machine._flags.clear(flag)
         self.machine.conditional_jmp(opcode, (0x22, 0x44))
-        self.assertTrue(self.machine._pc == 0x4422, f'{bitname} bit 0 should have jumped')
+        self.assertEqual(self.machine._pc, 0x4422, f'{bitname} bit 0 should have jumped')
 
     def test_jc(self):
         self._test_condjump_set(0xda, Flags.CARRY, "CARRY")
@@ -132,7 +132,7 @@ class TestMachine8080(TestCase):
     def _test_flag(self, flag, name, expected):
         """Checks that the carry bit val is equal to expected.
         """
-        self.assertTrue(self.machine._flags[flag] == expected,
+        self.assertEqual(self.machine._flags[flag], expected,
                         f'{name} not equal to {expected}')
 
     def test_ana(self):
@@ -153,7 +153,7 @@ class TestMachine8080(TestCase):
             self.machine._registers[Registers.A] = 0xf3
             self.machine._registers[reg] = 0x3f
             self.machine.ana(opcode)
-            self.assertTrue(self.machine._registers[Registers.A] == res,
+            self.assertEqual(self.machine._registers[Registers.A], res,
                             f'Result of ANA (opcode: {opcode:02X}) {self.machine._registers[Registers.A]:02X} not {res:02X}')
             self._test_flag(Flags.CARRY, "Carry", 0)
 
@@ -163,17 +163,17 @@ class TestMachine8080(TestCase):
         self.machine._registers[Registers.L] = 0x99
         self.machine._registers[Registers.A] = 0x3f
         self.machine.ana(0xa6)
-        self.assertTrue(self.machine._registers[Registers.A] == 0x33,
+        self.assertEqual(self.machine._registers[Registers.A], 0x33,
                         f'result of ANA M = {self.machine._registers[Registers.A]}, not 0x33')
         self._test_flag(Flags.CARRY, "Carry", 0)
 
         # verify CARRY flag is cleared
         self.machine._flags.set(Flags.CARRY)
-        self.assertTrue(self.machine._flags[Flags.CARRY] == 1, "Carry flag isn't set when it should be!")
+        self.assertEqual(self.machine._flags[Flags.CARRY], 1, "Carry flag isn't set when it should be!")
         self.machine._registers[Registers.B] = 1
         self.machine._registers[Registers.A] = 3
         self.machine.ana(0xa0) # 0xa0 = ANA B
-        self.assertTrue(self.machine._flags[Flags.CARRY] == 0, "Carry flag isn't reset after ANA")
+        self.assertEqual(self.machine._flags[Flags.CARRY], 0, "Carry flag isn't reset after ANA")
 
         # verify ZERO flag is set appropriately
         self.machine._flags.clear(Flags.ZERO)
@@ -220,6 +220,13 @@ class TestMachine8080(TestCase):
         else:
             self.machine._flags.set(flag)
 
+    def set_flags(self, flags):
+        """ Sets the given flags
+        :param flags: iterable of (flag, value) tuples
+        """
+        for f,v in flags:
+            self.set_flag(f,v)
+
     def set_register(self, reg, val):
         self.machine._registers[reg] = val
 
@@ -264,7 +271,7 @@ class TestMachine8080(TestCase):
         self.machine._flags.set(Flags.CARRY)
         self.machine._flags.set(Flags.AUX_CARRY)
         self.machine.xra(0xaf)
-        self.assertTrue(self.machine._registers[Registers.A] == 0,
+        self.assertEqual(self.machine._registers[Registers.A], 0,
                         f'A ^ A = {self.machine._registers[Registers.A]}')
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux. Carry", 0)
@@ -278,7 +285,7 @@ class TestMachine8080(TestCase):
         self.machine._flags.set(Flags.CARRY)
         self.machine._flags.set(Flags.AUX_CARRY)
         self.machine.xra(0xae)
-        self.assertTrue(self.machine._registers[Registers.A] == 0x24,
+        self.assertEqual(self.machine._registers[Registers.A], 0x24,
                         f'XRA M expected 0x24 got {self.machine._registers[Registers.A]:02X}')
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux. Carry", 0)
@@ -401,11 +408,8 @@ class TestMachine8080(TestCase):
         :param operands:
         :return:
         """
-        self.machine._flags.set(Flags.CARRY)
-        self.machine._flags.set(Flags.AUX_CARRY)
-        self.machine._flags.set(Flags.ZERO)
-        self.machine._flags.set(Flags.PARITY)
-        self.machine._flags.clear(Flags.SIGN)
+        self.set_flags([(Flags.CARRY, 1), (Flags.AUX_CARRY, 1), (Flags.ZERO, 1),
+                        (Flags.PARITY, 1), (Flags.SIGN, 0)])
         self.set_register(Registers.A, 0x4b) # 0100 1011
         self.machine.xri(0xee, (0x98,))      # 1001 1000 => 1101 0011
         self.assertEqual(self.machine._registers[Registers.A], 0xd3)
@@ -428,11 +432,8 @@ class TestMachine8080(TestCase):
                  (0xb3, Registers.E, 0xde), (0xb4, Registers.H, 0xde), (0xb5, Registers.L, 0xde),
                  (0xb7, Registers.A, 0x48)]
         for op, reg, expected in tests:
-            self.machine._flags.set(Flags.CARRY)
-            self.machine._flags.set(Flags.AUX_CARRY)
-            self.machine._flags.set(Flags.ZERO)
-            self.machine._flags.clear(Flags.PARITY)
-            self.machine._flags.clear(Flags.SIGN)
+            self.set_flags([(Flags.CARRY, 1), (Flags.AUX_CARRY, 1), (Flags.ZERO, 1),
+                            (Flags.PARITY, 0), (Flags.SIGN, 0)])
             self.set_register(reg, 0xd6)
             self.set_register(Registers.A, 0x48)
             self.machine.ora(op)
@@ -466,13 +467,10 @@ class TestMachine8080(TestCase):
 
     def test_ori(self):
         opcode = 0xf6
-        self.set_flag(Flags.CARRY, 1)
-        self.set_flag(Flags.AUX_CARRY, 1)
-        self.set_flag(Flags.ZERO, 1)
+        self.set_flags([(Flags.CARRY, 1), (Flags.AUX_CARRY, 1), (Flags.ZERO, 1),
+                        (Flags.SIGN, 0), (Flags.PARITY, 1)])
         #  1001 1100
         #  0100 1111  => 1101 1111
-        self.set_flag(Flags.SIGN, 0)
-        self.set_flag(Flags.PARITY, 1)
         self.set_register(Registers.A, 0x4f)
         self.machine.ori(opcode, (0x9c,))
         self.assertEqual(self.machine._registers[Registers.A], 0xdf)
