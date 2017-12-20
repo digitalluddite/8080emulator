@@ -99,7 +99,7 @@ class Machine8080:
             OpCode(int('0c', 16), 1, "INR C", "none", self.unhandled_instruction),
             OpCode(int('0d', 16), 1, "DCR C", "none", self.unhandled_instruction),
             OpCode(int('0e', 16), 2, "MVI C", "immediate", self.mvi),
-            OpCode(int('0f', 16), 1, "RRC", "none", self.unhandled_instruction),
+            OpCode(int('0f', 16), 1, "RRC", "none", self.rrc),
             OpCode(int('10', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('11', 16), 3, "LXI D", "immediate", self.lxi),
             OpCode(int('12', 16), 1, "STAX D", "none", self.stax),
@@ -958,6 +958,20 @@ class Machine8080:
         self._flags[Flags.CARRY] = (A >> 7)&0x1
         A = (A << 1) & 0xFF
         A |= cy
+        self._registers[Registers.A] = A
+
+    def rrc(self, *args):
+        """
+        Rotate right
+        (An-1) <- (An); (A7) <- (A0)
+        (CY) <- (A0)
+        :param args:
+        """
+        A = self._registers[Registers.A]
+        bit = A & 0x01
+        A = (A >> 1) & 0xff
+        A |= (bit << 7)
+        self._flags[Flags.CARRY] = bit
         self._registers[Registers.A] = A
 
 

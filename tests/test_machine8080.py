@@ -757,3 +757,20 @@ class TestMachine8080(TestCase):
         self.machine.ral() # CY = 0, 0000 0101
         self._test_flag(Flags.CARRY, "CARRY", 0)
         self.assertEqual(self.machine._registers[Registers.A], 0x05)
+
+    def test_rrc(self):
+        """
+        Rotate right
+        (An-1) <- (An); (A7) <- (A0)
+        (CY) <- (A0)
+        :param args:
+        """
+        self.machine._flags[Flags.CARRY] = 0
+        self.set_register(Registers.A, 0x41)  # 0100 0001
+        self.machine.rrc() # 1010 0000 CY = 1
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0xa0)
+
+        self.machine.rrc() # 0101 0000 CY = 0
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0x50)
