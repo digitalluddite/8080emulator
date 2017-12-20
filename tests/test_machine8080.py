@@ -717,3 +717,10 @@ class TestMachine8080(TestCase):
         self.assertEqual(h, 0xf0)
         self.assertEqual(self.machine._registers[Registers.H], 0x44)
         self.assertEqual(self.machine._registers[Registers.L], 0x11)
+
+    def test_sphl(self):
+        self.machine._sp = 0x0000
+        self.set_register(Registers.H, 0x5e)
+        self.set_register(Registers.L, 0xa1)
+        self.machine.sphl()
+        self.assertEqual(self.machine._sp, 0x5ea1)

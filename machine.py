@@ -329,7 +329,7 @@ class Machine8080:
             OpCode(int('f6', 16), 2, "ORI", "immediate", self.ori),
             OpCode(int('f7', 16), 1, "RST", "none", self.unhandled_instruction),
             OpCode(int('f8', 16), 1, "RM", "none", self.conditional_ret),
-            OpCode(int('f9', 16), 1, "SPHL", "none", self.unhandled_instruction),
+            OpCode(int('f9', 16), 1, "SPHL", "none", self.sphl),
             OpCode(int('fa', 16), 3, "JM", "address", self.conditional_jmp),
             OpCode(int('fb', 16), 1, "EI", "none", self.unhandled_instruction),
             OpCode(int('fc', 16), 3, "CM", "address", self.conditional_call),
@@ -897,7 +897,7 @@ class Machine8080:
         self._flags.flags, self._registers[Registers.A] = self.read_memory(self._sp, 2)
         self._sp += 2
 
-    def xthl(self):
+    def xthl(self, *args):
         """"
         (L)  <->  (SP)
         (H)  <->  (SP)+1
@@ -910,6 +910,13 @@ class Machine8080:
         tmp = self._registers[Registers.H]
         self._registers[Registers.H] = h
         self.write_memory(self._sp+1, tmp)
+
+    def sphl(self, *args):
+        """
+        (SP) <- (H)(L)
+        :param args:
+        """
+        self._sp = (self._registers[Registers.H] << 8) | self._registers[Registers.L]
 
 
 if __name__ == "__main__":
