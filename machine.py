@@ -348,8 +348,7 @@ class Machine8080:
         try:
             with open(romfile, "rb") as fp:
                 self._memory = bytearray(fp.read())
-                self._memory = self._memory \
-                               + bytearray([0 for x in range(0x10000 - len(self._memory))])
+                self._memory = self._memory + bytearray([0 for x in range(0x10000 - len(self._memory))])
                 self._pc = 0
         except Exception as e:
             raise RomLoadException("{0}".format(e))
