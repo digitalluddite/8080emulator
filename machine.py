@@ -64,6 +64,10 @@ class EmulatorRuntimeException(Exception):
         return "Error processing instruction {0:02X}: {1}".format(self.op, self.msg)
 
 
+class HaltException(Exception):
+    pass
+
+
 class Machine8080:
     def __init__(self):
         self._memory = None
@@ -198,7 +202,7 @@ class Machine8080:
             OpCode(int('73', 16), 1, "MOV M,E", "none", self.mov),
             OpCode(int('74', 16), 1, "MOV M,H", "none", self.mov),
             OpCode(int('75', 16), 1, "MOV M,L", "none", self.mov),
-            OpCode(int('76', 16), 1, "HALT", "none", self.unhandled_instruction),
+            OpCode(int('76', 16), 1, "HALT", "none", self.halt),
             OpCode(int('77', 16), 1, "MOV M,A", "none", self.mov),
             OpCode(int('78', 16), 1, "MOV A,B", "none", self.mov),
             OpCode(int('79', 16), 1, "MOV A,C", "none", self.mov),
@@ -376,6 +380,8 @@ class Machine8080:
                 inst.handler(inst.opcode, operands)
             except EmulatorRuntimeException as e:
                 logging.error("{}".format(e))
+            except HaltException:
+                break
 
     @staticmethod
     def format_operand(opcode, ops):
@@ -917,6 +923,9 @@ class Machine8080:
         :param args:
         """
         self._sp = (self._registers[Registers.H] << 8) | self._registers[Registers.L]
+
+    def halt(self, *args):
+        raise HaltException()
 
 
 if __name__ == "__main__":

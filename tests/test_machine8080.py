@@ -2,7 +2,7 @@ from unittest import TestCase
 import logging
 
 from machine import Machine8080
-from machine import OutOfMemoryException
+from machine import OutOfMemoryException, HaltException
 from cpu import Registers, Flags
 
 
@@ -724,3 +724,7 @@ class TestMachine8080(TestCase):
         self.set_register(Registers.L, 0xa1)
         self.machine.sphl()
         self.assertEqual(self.machine._sp, 0x5ea1)
+
+    def test_halt(self):
+        with self.assertRaises(HaltException):
+            self.machine.halt()
