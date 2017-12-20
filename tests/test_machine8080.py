@@ -728,3 +728,32 @@ class TestMachine8080(TestCase):
     def test_halt(self):
         with self.assertRaises(HaltException):
             self.machine.halt()
+
+    def test_rlc(self):
+        self.set_flag(Flags.CARRY, 0)
+        self.set_register(Registers.A, 1)
+        for x in range(1,9):
+            self.machine.rlc()
+            if x == 8:
+                test_val = 1
+                carry = 1
+            else:
+                test_val = 1 << x
+                carry = 0
+            self.assertEqual(self.machine._registers[Registers.A], test_val)
+            self.assertEqual(self.machine._flags[Flags.CARRY], carry)
+
+    def test_ral(self):
+        """Rotate left through cary bit
+
+        Carry goes to A0, A7 goes to carry, everything else shifts left
+        """
+        self.set_flag(Flags.CARRY, 0)
+        self.set_register(Registers.A, 0x81)  # 1000 0001
+        self.machine.ral()  # expected, CY = 1, 0000 0010
+        self._test_flag(Flags.CARRY, "CARRY", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x02)
+
+        self.machine.ral() # CY = 0, 0000 0101
+        self._test_flag(Flags.CARRY, "CARRY", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0x05)

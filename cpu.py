@@ -69,6 +69,20 @@ class Flags:
 
         return (self.flags & 2 ** key) >> key
 
+    def __setitem__(self, key, value):
+        if type(key) != int:
+            raise TypeError("Expected bit-number of flag")
+        if key not in self._valid_bits:
+            raise IndexError(key)
+        if value == 0:
+            self._clear_flag(key)
+        elif value == 1:
+            self._set_flag(key)
+        else:
+            raise ValueError("Flags can only be 1 or 0")
+
+
+
     def _set_flag(self, bit):
         """
         Set condition flag bit.

@@ -91,7 +91,7 @@ class Machine8080:
             OpCode(int('04', 16), 1, "INR B", "none", self.unhandled_instruction),
             OpCode(int('05', 16), 1, "DCR B", "none", self.unhandled_instruction),
             OpCode(int('06', 16), 2, "MVI B", "immediate", self.mvi),
-            OpCode(int('07', 16), 1, "RLC", "none", self.unhandled_instruction),
+            OpCode(int('07', 16), 1, "RLC", "none", self.rlc),
             OpCode(int('08', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('09', 16), 1, "DAD B", "none", self.unhandled_instruction),
             OpCode(int('0a', 16), 1, "LDAX B", "none", self.ldax),
@@ -107,7 +107,7 @@ class Machine8080:
             OpCode(int('14', 16), 1, "INR D", "none", self.unhandled_instruction),
             OpCode(int('15', 16), 1, "DCR D", "none", self.unhandled_instruction),
             OpCode(int('16', 16), 2, "MVI D,", "immediate", self.mvi),
-            OpCode(int('17', 16), 1, "RAL", "none", self.unhandled_instruction),
+            OpCode(int('17', 16), 1, "RAL", "none", self.ral),
             OpCode(int('18', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('19', 16), 1, "DAD D", "none", self.unhandled_instruction),
             OpCode(int('1a', 16), 1, "LDAX D", "none", self.ldax),
@@ -926,6 +926,39 @@ class Machine8080:
 
     def halt(self, *args):
         raise HaltException()
+
+    def rlc(self, *args):
+        """
+        (An+1) <- (An); (A0) <- (A7)
+        (CY) <- (A7)
+        :return:
+        """
+        val = self._registers[Registers.A]
+        logging.info(f'Current value of A: {val:02X}')
+        bit = (val >> 7) & 0x1
+        logging.info(f'Current value of bit: {bit:02X}')
+        if bit == 0:
+            self._flags.clear(Flags.CARRY)
+        else:
+            self._flags.set(Flags.CARRY)
+        val = (val << 1) & 0xff
+        val |= bit
+        logging.info(f'New Value of A: {val:02X}')
+        self._registers[Registers.A] = val
+
+    def ral(self, *args):
+        """
+        Rotate left through carry
+
+        Carry bit goes to A0, A7 goes to Carry, everything else shifts left
+        :param args:
+        """
+        cy = self._flags[Flags.CARRY]
+        A = self._registers[Registers.A]
+        self._flags[Flags.CARRY] = (A >> 7)&0x1
+        A = (A << 1) & 0xFF
+        A |= cy
+        self._registers[Registers.A] = A
 
 
 if __name__ == "__main__":
