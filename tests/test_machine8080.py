@@ -774,3 +774,19 @@ class TestMachine8080(TestCase):
         self.machine.rrc() # 0101 0000 CY = 0
         self._test_flag(Flags.CARRY, "Carry", 0)
         self.assertEqual(self.machine._registers[Registers.A], 0x50)
+
+    def test_rar(self):
+        """
+        An <- An+1
+        CY <- A0
+        A7 <- CY
+        """
+        self.machine._flags[Flags.CARRY] = 1
+        self.machine._registers[Registers.A] = 0x42 # 0100 0010
+        self.machine.rar()  # carry should be 0, A = 1010 0001
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0xa1)
+
+        self.machine.rar() # CY = 1, A = 0101 0000
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x50)
