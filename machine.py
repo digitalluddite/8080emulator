@@ -89,7 +89,7 @@ class Machine8080:
             OpCode(int('00', 16), 1, "NOP", "none", self.nop),
             OpCode(int('01', 16), 3, "LXI B", "immediate", self.lxi),
             OpCode(int('02', 16), 1, "STAX B", "none", self.stax),
-            OpCode(int('03', 16), 1, "INX B", "none", self.unhandled_instruction),
+            OpCode(int('03', 16), 1, "INX B", "none", self.inx),
             OpCode(int('04', 16), 1, "INR B", "none", self.unhandled_instruction),
             OpCode(int('05', 16), 1, "DCR B", "none", self.unhandled_instruction),
             OpCode(int('06', 16), 2, "MVI B", "immediate", self.mvi),
@@ -105,7 +105,7 @@ class Machine8080:
             OpCode(int('10', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('11', 16), 3, "LXI D", "immediate", self.lxi),
             OpCode(int('12', 16), 1, "STAX D", "none", self.stax),
-            OpCode(int('13', 16), 1, "INX D", "none", self.unhandled_instruction),
+            OpCode(int('13', 16), 1, "INX D", "none", self.inx),
             OpCode(int('14', 16), 1, "INR D", "none", self.unhandled_instruction),
             OpCode(int('15', 16), 1, "DCR D", "none", self.unhandled_instruction),
             OpCode(int('16', 16), 2, "MVI D,", "immediate", self.mvi),
@@ -121,7 +121,7 @@ class Machine8080:
             OpCode(int('20', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('21', 16), 3, "LXI H", "immediate", self.lxi),
             OpCode(int('22', 16), 3, "SHLD", "address", self.shld),
-            OpCode(int('23', 16), 1, "INX H", "none", self.unhandled_instruction),
+            OpCode(int('23', 16), 1, "INX H", "none", self.inx),
             OpCode(int('24', 16), 1, "INR H", "none", self.unhandled_instruction),
             OpCode(int('25', 16), 1, "DCR H", "none", self.unhandled_instruction),
             OpCode(int('26', 16), 2, "MVI H,", "immediate", self.mvi),
@@ -137,7 +137,7 @@ class Machine8080:
             OpCode(int('30', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('31', 16), 3, "LXI SP", "immediate", self.lxi),
             OpCode(int('32', 16), 3, "STA", "address", self.sta),
-            OpCode(int('33', 16), 1, "INX SP", "none", self.unhandled_instruction),
+            OpCode(int('33', 16), 1, "INX SP", "none", self.inx),
             OpCode(int('34', 16), 1, "INR M", "none", self.unhandled_instruction),
             OpCode(int('35', 16), 1, "DCR M", "none", self.unhandled_instruction),
             OpCode(int('36', 16), 2, "MVI M,", "immediate", self.mvi),
@@ -587,7 +587,7 @@ class Machine8080:
         Sign, Zero, Parity are set accordingly
         """
         res = orfunc(val, self._registers[Registers.A])
-        logging.info(f'[_internal_xor] {val:02X} ^ {self._registers[Registers.A]:02X} = {res:02X}')
+        logging.debug(f'[_internal_xor] {val:02X} ^ {self._registers[Registers.A]:02X} = {res:02X}')
         self._registers[Registers.A] = res
         self._flags.clear(Flags.CARRY)
         self._flags.clear(Flags.AUX_CARRY)
@@ -659,7 +659,7 @@ class Machine8080:
         00rp0001
         """
         rp = (opcode >> 4) & 0x3
-        logging.info(f'register pair: {rp:02x}')
+        logging.debug(f'register pair: {rp:02x}')
         if rp == 0x3: # stack pointer
             self._sp = (operands[1] << 8) | operands[0]
         else:
@@ -912,6 +912,7 @@ class Machine8080:
         (L)  <->  (SP)
         (H)  <->  (SP)+1
         """
+        logging.info("XTHL")
         l, h = self.read_memory(self._sp, 2)
         tmp = self._registers[Registers.L]
         self._registers[Registers.L] = l
@@ -926,9 +927,11 @@ class Machine8080:
         (SP) <- (H)(L)
         :param args:
         """
+        logging.info("SPHL")
         self._sp = (self._registers[Registers.H] << 8) | self._registers[Registers.L]
 
     def halt(self, *args):
+        logging.info("HALT")
         raise HaltException()
 
     def rlc(self, *args):
@@ -937,17 +940,18 @@ class Machine8080:
         (CY) <- (A7)
         :return:
         """
+        logging.info("RLC")
         val = self._registers[Registers.A]
-        logging.info(f'Current value of A: {val:02X}')
+        logging.debug(f'Current value of A: {val:02X}')
         bit = (val >> 7) & 0x1
-        logging.info(f'Current value of bit: {bit:02X}')
+        logging.debug(f'Current value of bit: {bit:02X}')
         if bit == 0:
             self._flags.clear(Flags.CARRY)
         else:
             self._flags.set(Flags.CARRY)
         val = (val << 1) & 0xff
         val |= bit
-        logging.info(f'New Value of A: {val:02X}')
+        logging.debug(f'New Value of A: {val:02X}')
         self._registers[Registers.A] = val
 
     def ral(self, *args):
@@ -957,6 +961,7 @@ class Machine8080:
         Carry bit goes to A0, A7 goes to Carry, everything else shifts left
         :param args:
         """
+        logging.info("RAL")
         cy = self._flags[Flags.CARRY]
         A = self._registers[Registers.A]
         self._flags[Flags.CARRY] = (A >> 7)&0x1
@@ -971,6 +976,7 @@ class Machine8080:
         (CY) <- (A0)
         :param args:
         """
+        logging.info("RRC")
         A = self._registers[Registers.A]
         bit = A & 0x01
         A = (A >> 1) & 0xff
@@ -985,9 +991,10 @@ class Machine8080:
         A7 <- CY
         :param args:
         """
+        logging.info(f'RAR')
         cy = self._flags[Flags.CARRY]
         A = self._registers[Registers.A]
-        logging.info("A & 0x01 = {0}".format(A&0x01))
+        logging.debug("A & 0x01 = {0}".format(A&0x01))
         self._flags[Flags.CARRY] = A & 0x01
         A = ((A >> 1) & 0xff) | (cy << 7)
         self._registers[Registers.A] = A
@@ -1003,6 +1010,7 @@ class Machine8080:
         :param opcode:
         :param args:
         """
+        logging.info(f'CMP {opcode:02X}')
         reg = self._registers.get_register_from_opcode(opcode, 0)
         if reg == Registers.M:
             address = self._registers.get_address_from_pair(Registers.H)
@@ -1021,8 +1029,24 @@ class Machine8080:
         if A == 0:
             self._flags.set(Flags.ZERO)
         b = to_signed_binary(A)
-        logging.info(f'A = {A} {b:02X}')
         self._flags.calculate_parity(b)
+
+    def inx(self, opcode, *arg):
+        """
+        (rh)(rl) <- (rh)(rl) + 1
+
+        instruction: 00RP0011
+        """
+        logging.info(f'INX {opcode:02X}')
+        pair = (opcode >> 4) & 0x3
+        if pair == 3:
+            self._sp += 1
+        else:
+            pair = self._registers.get_pairs(pair)
+            val = (self._registers[pair.hi] << 8) | self._registers[pair.lo]
+            val += 1
+            self._registers[pair.hi] = (val >> 8) & 0xff
+            self._registers[pair.lo] = val & 0xff
 
 
 
@@ -1031,3 +1055,4 @@ if __name__ == "__main__":
     machine = Machine8080()
     machine.load(sys.argv[1])
     machine.execute()
+

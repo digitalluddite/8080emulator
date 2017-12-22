@@ -836,3 +836,26 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
+    def test_inx(self):
+        tests = [(0x03, Registers.B, Registers.C), (0x13, Registers.D, Registers.E),
+                 (0x23, Registers.H, Registers.L)]
+        for op, hi, lo in tests:
+            self.set_register(hi, 0x44)
+            self.set_register(lo, 0xab)
+            self._clear_flags()
+            self.machine.inx(op)
+            self.assertEqual(self.machine._registers[hi], 0x44) 
+            self.assertEqual(self.machine._registers[lo], 0xac) 
+            self.assertEqual(self.machine._flags.flags, 0x2) # bit 1 is always one
+
+        self.set_register(Registers.B, 0x44)
+        self.set_register(Registers.C, 0xff)
+        self.machine.inx(0x03)
+        self.assertEqual(self.machine._registers[Registers.B], 0x45)
+        self.assertEqual(self.machine._registers[Registers.C], 0x00)
+        
+        self.machine._sp = 0x5678
+        self.machine.inx(0x33)  # opcode for SP "pair"
+        self.assertEqual(self.machine._sp, 0x5679)
+
+
