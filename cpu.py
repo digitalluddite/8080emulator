@@ -230,3 +230,4 @@ class Registers:
         """Returns a RegisterPair namedtuple
         """
         return self._rp[pair_encoding]
+
