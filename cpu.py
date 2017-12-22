@@ -1,3 +1,5 @@
+"""
+"""
 from collections import namedtuple
 
 
@@ -81,7 +83,12 @@ class Flags:
         else:
             raise ValueError("Flags can only be 1 or 0")
 
-
+    def clear_all(self):
+        """
+        Sets all condition bits to 0
+        """
+        for f in self._valid_bits:
+            self._clear_flag(f)
 
     def _set_flag(self, bit):
         """

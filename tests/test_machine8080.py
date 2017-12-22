@@ -9,7 +9,7 @@ from cpu import Registers, Flags
 class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
-        self.machine.load("../rom")
+        self.machine.load("rom")
         logging.basicConfig(level=logging.INFO)
 
     def test_read_memory(self):
@@ -790,3 +790,49 @@ class TestMachine8080(TestCase):
         self.machine.rar() # CY = 1, A = 0101 0000
         self._test_flag(Flags.CARRY, "Carry", 1)
         self.assertEqual(self.machine._registers[Registers.A], 0x50)
+
+    def _clear_flags(self):
+        for f in [Flags.CARRY, Flags.AUX_CARRY, Flags.SIGN, Flags.PARITY, Flags.ZERO]:
+            self.machine._flags.clear(f)
+
+    def _set_flags(self):
+        for f in [Flags.CARRY, Flags.AUX_CARRY, Flags.SIGN, Flags.PARITY, Flags.ZERO]:
+            self.machine._flags.set(f)
+
+    def test_cmp(self):
+        """
+        Instruction format: 10111SSS
+
+        Contents of register (or memory) is subtracted from A.
+        Accumulator remains unchanged.  Condition flags are set.
+
+        Z flag is set if (A) == SSS; CY is set if A < SSS
+        """
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.B] = 0x80 # 1000 0000 (-128)
+        self.machine.cmp(0xb8)  # 0xd9  1101 1001
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0x59)
+
+        self._clear_flags()
+        self.machine._registers[Registers.C] = 0x4a # 0100 1010  # I assume AC will be set
+        self.machine.cmp(0xb9)  # 0000 1111
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+
+        self._clear_flags()
+        self.machine._registers[Registers.D] = 0x60  # 0110 0000
+        self.machine.cmp(0xda)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        self._clear_flags()
+        self.machine.cmp(0xbf)  # 0x81 1000 0001
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
