@@ -1,6 +1,6 @@
 
 
-def get_signed_int(x):
+def byte_to_signed_int(x):
     """
     Returns a signed integer from the byte
     :param x:  Byte
@@ -10,7 +10,7 @@ def get_signed_int(x):
     else:
         return x
 
-def to_signed_binary(x):
+def int_to_signed_byte(x):
     """
     Converts the signed integer to a 2s-complement byte.
     """
@@ -21,4 +21,16 @@ def to_signed_binary(x):
     else:
         return 0
 
+def word_to_signed_int(x):
+    """
+    returns a signed integer from the word (2-bytes)
+    :param x: two-bytes to convert to a signed number
+    """
+    pass
+
+
+def is_negative(b):
+    """Returns True if the given byte represents a negative number.
+    """
+    return ((b >> 7) & 0x1) == 1
 

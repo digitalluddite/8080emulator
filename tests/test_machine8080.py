@@ -25,7 +25,7 @@ class TestMachine8080(TestCase):
         self.machine._registers[Registers.B] = 0x33
         self.machine.mov(0x47)  # MOV B, A
         self.assertEqual(self.machine._registers[Registers.A], 0x10)
-        self.assertEqual(self.machine._registers[Registers.B], 0x10)  # make sure source doesn't change
+        self.assertEqual(self.machine._registers[Registers.B], 0x10)  
 
         self.machine.write_memory(0xff00, 0xAA)
         self.machine._registers[Registers.H] = 0xff
@@ -34,7 +34,7 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers[Registers.A], 0xAA)
 
     def test_stax(self):
-        self.assertNotEqual(self.machine.read_memory(0x1000, 1)[0], 0xAA)  # make sure it's not what we're setting
+        self.assertNotEqual(self.machine.read_memory(0x1000, 1)[0], 0xAA)  
         self.machine._registers[Registers.A] = 0xAA
         self.machine._registers[Registers.B] = 0x10
         self.machine._registers[Registers.C] = 0x00
@@ -42,7 +42,7 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine.read_memory(0x1000, 1)[0], 0xAA)
 
 
-        self.assertNotEqual(self.machine.read_memory(0x01FF, 1)[0], 0xAA)  # make sure it's not what we're setting
+        self.assertNotEqual(self.machine.read_memory(0x01FF, 1)[0], 0xAA)  
         self.machine._registers[Registers.A] = 0xAA
         self.machine._registers[Registers.D] = 0x01
         self.machine._registers[Registers.E] = 0xFF
@@ -139,9 +139,11 @@ class TestMachine8080(TestCase):
                         f'{name} not equal to {expected}')
 
     def test_ana(self):
-        """Logical AND.  Carry bit is cleared, zero, sign, and parity are affected
+        """Logical AND.  
+        Carry bit is cleared, zero, sign, and parity are affected
 
-        Intel manual from Sept '75 says the AC bit is affected as well, but not how it's affected
+        Intel manual from Sept '75 says the AC bit is affected as 
+        well, but not how it's affected
 
             1111 0011
         AND 0011 1111
@@ -857,5 +859,77 @@ class TestMachine8080(TestCase):
         self.machine._sp = 0x5678
         self.machine.inx(0x33)  # opcode for SP "pair"
         self.assertEqual(self.machine._sp, 0x5679)
+        self.machine._sp = 0xffff
+        self.machine.inx(0x33)
+        self.assertEqual(self.machine._sp, 0x0000)
 
+    def test_dcx(self):
+        tests = [(0x0b, Registers.B, Registers.C), (0x1b, Registers.D, Registers.E),
+                 (0x2b, Registers.H, Registers.L)]
+        for op, hi, lo in tests:
+            self.set_register(hi, 0x23)
+            self.set_register(lo, 0x00)
+            self._clear_flags()
+            self.machine.dcx(op)
+            self.assertEqual(self.machine._flags.flags, 0x02)
+            self.assertEqual(self.machine._registers[hi], 0x22)
+            self.assertEqual(self.machine._registers[lo], 0xff)
+
+        self.set_register(Registers.H, 0x00)
+        self.set_register(Registers.L, 0x00)
+        self.machine.dcx(0x2b)
+        self.assertEqual(self.machine._registers[Registers.H], 0xff) 
+        self.assertEqual(self.machine._registers[Registers.L], 0xff) 
+
+        self.machine._sp = 0x1111
+        self.machine.dcx(0x3b)
+        self.assertEqual(self.machine._sp, 0x1110)
+        self.machine._sp = 0x0000
+        self.machine.dcx(0x3b)
+        self.assertEqual(self.machine._sp, 0xffff)
+
+    def test_inr(self):
+        """
+        (R) <- (R) + 1
+
+        instruction format: 00DDD100
+
+        Flags affected: Z, S, P, AC
+        """
+        tests = [(0x04, Registers.B), (0x0c, Registers.C), (0x14, Registers.D),
+                 (0x1C, Registers.E), (0x24, Registers.H), (0x2C, Registers.L), 
+                 (0x3c, Registers.A)]
+        for op,reg in tests:
+            self._clear_flags()
+            self.machine._flags[Flags.PARITY] =  1
+            self.set_register(reg, 0xaa) # 1010 1010
+            self.machine.inr(op)
+            self.assertEqual(self.machine._registers[reg], 0xab) # 1010 1011
+            self._test_flag(Flags.PARITY, "Parity", 0) 
+            self._test_flag(Flags.SIGN, "Sign", 1)
+            self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+            
+        # test "M" register 
+        self.machine._flags[Flags.PARITY] =  0
+        self.machine.write_memory(0xaaaa, 0xab)  # 1010 1011
+        self.set_register(Registers.H, 0xaa)
+        self.set_register(Registers.L, 0xaa)
+        self.machine.inr(0x34)
+        val = self.machine.read_memory(0xaaaa, 1)[0]
+        self.assertEqual(val, 0xac)  # 1010 1100
+        self._test_flag(Flags.PARITY, "Parity", 1) 
+
+        self.set_register(Registers.B, 0x7f)
+        self.machine.inr(0x04)
+        self.assertEqual(self.machine._registers[Registers.B], 0x80)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        self.set_register(Registers.B, 0xff)
+        self.machine.inr(0x04)
+        self.assertEqual(self.machine._registers[Registers.B], 0x00)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+
+        self.set_register(Registers.B, 0x1f)
+        self.machine.inr(0x04)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
 

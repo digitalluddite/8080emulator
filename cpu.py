@@ -2,6 +2,8 @@
 """
 from collections import namedtuple
 
+from utils import is_negative
+
 
 class InvalidFlagException(Exception):
     def __init__(self, flag):
@@ -135,7 +137,7 @@ class Flags:
 
     def set_sign(self, val):
         self.clear(Flags.SIGN)
-        if (val >> 7) == 1:
+        if is_negative(val):
             self.set(Flags.SIGN)
 
 
@@ -205,6 +207,25 @@ class Registers:
         hi = self._registers[pair.hi]
         lo = self._registers[pair.lo]
         return (hi << 8) | lo
+
+    def get_value_from_pair(self, pair):
+        """
+        Calculates the 2-byte value from the given pair.
+        :param pair:  A RegisterPair tuple
+        :return:
+        """
+        hi = self._registers[pair.hi]
+        lo = self._registers[pair.lo]
+        return (hi << 8) | lo
+
+    def set_value_pair(self, pair, val):
+        """
+        Takes the two byte value and stores it in the given register pair.
+        :param pair: A RegisterPair tuple
+        :param val:  The value to store.
+        """
+        self._registers[pair.hi] = (val >> 8) & 0xff
+        self._registers[pair.lo] = val & 0xff
 
     @staticmethod
     def get_register_from_opcode(opcode, bit_offset):

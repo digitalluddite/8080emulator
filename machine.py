@@ -3,7 +3,7 @@ import logging
 from collections import namedtuple
 
 from cpu import Flags, Registers, RegisterPair
-from utils import get_signed_int, to_signed_binary
+from utils import byte_to_signed_int, int_to_signed_byte
 
 
 """
@@ -90,15 +90,15 @@ class Machine8080:
             OpCode(int('01', 16), 3, "LXI B", "immediate", self.lxi),
             OpCode(int('02', 16), 1, "STAX B", "none", self.stax),
             OpCode(int('03', 16), 1, "INX B", "none", self.inx),
-            OpCode(int('04', 16), 1, "INR B", "none", self.unhandled_instruction),
+            OpCode(int('04', 16), 1, "INR B", "none", self.inr),
             OpCode(int('05', 16), 1, "DCR B", "none", self.unhandled_instruction),
             OpCode(int('06', 16), 2, "MVI B", "immediate", self.mvi),
             OpCode(int('07', 16), 1, "RLC", "none", self.rlc),
             OpCode(int('08', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('09', 16), 1, "DAD B", "none", self.unhandled_instruction),
             OpCode(int('0a', 16), 1, "LDAX B", "none", self.ldax),
-            OpCode(int('0b', 16), 1, "DCX B", "none", self.unhandled_instruction),
-            OpCode(int('0c', 16), 1, "INR C", "none", self.unhandled_instruction),
+            OpCode(int('0b', 16), 1, "DCX B", "none", self.dcx),
+            OpCode(int('0c', 16), 1, "INR C", "none", self.inr),
             OpCode(int('0d', 16), 1, "DCR C", "none", self.unhandled_instruction),
             OpCode(int('0e', 16), 2, "MVI C", "immediate", self.mvi),
             OpCode(int('0f', 16), 1, "RRC", "none", self.rrc),
@@ -106,15 +106,15 @@ class Machine8080:
             OpCode(int('11', 16), 3, "LXI D", "immediate", self.lxi),
             OpCode(int('12', 16), 1, "STAX D", "none", self.stax),
             OpCode(int('13', 16), 1, "INX D", "none", self.inx),
-            OpCode(int('14', 16), 1, "INR D", "none", self.unhandled_instruction),
+            OpCode(int('14', 16), 1, "INR D", "none", self.inr),
             OpCode(int('15', 16), 1, "DCR D", "none", self.unhandled_instruction),
             OpCode(int('16', 16), 2, "MVI D,", "immediate", self.mvi),
             OpCode(int('17', 16), 1, "RAL", "none", self.ral),
             OpCode(int('18', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('19', 16), 1, "DAD D", "none", self.unhandled_instruction),
             OpCode(int('1a', 16), 1, "LDAX D", "none", self.ldax),
-            OpCode(int('1b', 16), 1, "DCX D", "none", self.unhandled_instruction),
-            OpCode(int('1c', 16), 1, "INR E", "none", self.unhandled_instruction),
+            OpCode(int('1b', 16), 1, "DCX D", "none", self.dcx),
+            OpCode(int('1c', 16), 1, "INR E", "none", self.inr),
             OpCode(int('1d', 16), 1, "DCR E", "none", self.unhandled_instruction),
             OpCode(int('1e', 16), 2, "MVI E,", "immediate", self.mvi),
             OpCode(int('1f', 16), 1, "RAR", "none", self.rar),
@@ -122,14 +122,14 @@ class Machine8080:
             OpCode(int('21', 16), 3, "LXI H", "immediate", self.lxi),
             OpCode(int('22', 16), 3, "SHLD", "address", self.shld),
             OpCode(int('23', 16), 1, "INX H", "none", self.inx),
-            OpCode(int('24', 16), 1, "INR H", "none", self.unhandled_instruction),
+            OpCode(int('24', 16), 1, "INR H", "none", self.inr),
             OpCode(int('25', 16), 1, "DCR H", "none", self.unhandled_instruction),
             OpCode(int('26', 16), 2, "MVI H,", "immediate", self.mvi),
             OpCode(int('27', 16), 1, "DAA", "none", self.unhandled_instruction),
             OpCode(int('28', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('29', 16), 1, "DAD H", "none", self.unhandled_instruction),
             OpCode(int('2a', 16), 3, "LHLD", "address", self.lhld),
-            OpCode(int('2b', 16), 1, "DCX H", "none", self.unhandled_instruction),
+            OpCode(int('2b', 16), 1, "DCX H", "none", self.dcx),
             OpCode(int('2c', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('2d', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('2e', 16), 2, "MVI L,", "immediate", self.mvi),
@@ -138,15 +138,15 @@ class Machine8080:
             OpCode(int('31', 16), 3, "LXI SP", "immediate", self.lxi),
             OpCode(int('32', 16), 3, "STA", "address", self.sta),
             OpCode(int('33', 16), 1, "INX SP", "none", self.inx),
-            OpCode(int('34', 16), 1, "INR M", "none", self.unhandled_instruction),
+            OpCode(int('34', 16), 1, "INR M", "none", self.inr),
             OpCode(int('35', 16), 1, "DCR M", "none", self.unhandled_instruction),
             OpCode(int('36', 16), 2, "MVI M,", "immediate", self.mvi),
             OpCode(int('37', 16), 1, "STC", "none", self.stc),
             OpCode(int('38', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('39', 16), 1, "DAD SP", "none", self.unhandled_instruction),
             OpCode(int('3a', 16), 3, "LDA", "address", self.lda),
-            OpCode(int('3b', 16), 1, "DCX SP", "none", self.unhandled_instruction),
-            OpCode(int('3c', 16), 1, "INR A", "none", self.unhandled_instruction),
+            OpCode(int('3b', 16), 1, "DCX SP", "none", self.dcx),
+            OpCode(int('3c', 16), 1, "INR A", "none", self.inr),
             OpCode(int('3d', 16), 1, "DCR", "none", self.unhandled_instruction),
             OpCode(int('3e', 16), 2, "MVI A,", "immediate", self.mvi),
             OpCode(int('3f', 16), 1, "CMC", "none", self.cmc),
@@ -1017,8 +1017,8 @@ class Machine8080:
             val, *_ = self.read_memory(address, 1)
         else:
             val = self._registers[reg]
-        val = get_signed_int(val)
-        A = get_signed_int(self._registers[Registers.A])
+        val = byte_to_signed_int(val)
+        A = byte_to_signed_int(self._registers[Registers.A])
         self._flags.clear_all()
         if A < val:
             self._flags.set(Flags.CARRY)
@@ -1028,7 +1028,7 @@ class Machine8080:
         A -= val
         if A == 0:
             self._flags.set(Flags.ZERO)
-        b = to_signed_binary(A)
+        b = int_to_signed_byte(A)
         self._flags.calculate_parity(b)
 
     def inx(self, opcode, *arg):
@@ -1040,14 +1040,59 @@ class Machine8080:
         logging.info(f'INX {opcode:02X}')
         pair = (opcode >> 4) & 0x3
         if pair == 3:
-            self._sp += 1
+            self._sp = (self._sp + 1) & 0xffff
         else:
             pair = self._registers.get_pairs(pair)
-            val = (self._registers[pair.hi] << 8) | self._registers[pair.lo]
-            val += 1
-            self._registers[pair.hi] = (val >> 8) & 0xff
-            self._registers[pair.lo] = val & 0xff
+            val = self._registers.get_value_from_pair(pair)
+            val = (val + 1) & 0xffff
+            self._registers.set_value_pair(pair, val)
 
+    def dcx(self, opcode, *arg):
+        """
+        (rh)(rl) <- (rh)(rl)-1
+        
+        instruction format 00RP1011
+        """
+        logging.info(f'DCX {opcode:02X}')
+        pair = (opcode >> 4) & 0x3
+        if pair == 3:
+            self._sp = (self._sp - 1) & 0xffff
+        else:
+            pair = self._registers.get_pairs(pair)
+            val = self._registers.get_value_from_pair(pair)
+            logging.debug(f'val = {val:04X} val-1 = {(val-1)&0xffff:04X}')
+            val = (val - 1) & 0xffff
+            self._registers.set_value_pair(pair, val)            
+
+    def inr(self, opcode, *args):
+        """
+        (R) <- (R) + 1
+
+        instruction format: 00DDD100
+
+        Flags affected: Z, S, P, AC
+        """
+        reg = Registers.get_register_from_opcode(opcode, 3)
+        if reg == Registers.M:
+            addr = self._registers.get_address_from_pair(Registers.H)
+            val = self.read_memory(addr, 1)[0]
+        else:
+            val = self._registers[reg]
+
+        if (val & 0x0f) == 0x0f:
+            self._flags[Flags.AUX_CARRY] = 1
+        else:
+            self._flags[Flags.AUX_CARRY] = 0
+
+        val = (val + 1) & 0xff
+        self._flags.calculate_parity(val)
+        self._flags.set_zero(val)
+        self._flags.set_sign(val)
+
+        if reg == Registers.M:
+            self.write_memory(addr, val)
+        else:
+            self._registers[reg] = val
 
 
 if __name__ == "__main__":
