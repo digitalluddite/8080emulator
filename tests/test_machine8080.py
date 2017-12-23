@@ -933,3 +933,58 @@ class TestMachine8080(TestCase):
         self.machine.inr(0x04)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
 
+    def test_dcr(self):
+        """
+        (R) <- (R) - 1
+        instruction format 00DDD101
+        Flags: Z, S, P, AC
+        """
+        tests = [(0x05, Registers.B), (0x0d, Registers.C), (0x15, Registers.D),
+                 (0x1D, Registers.E), (0x25, Registers.H), (0x2D, Registers.L), 
+                 (0x3D, Registers.A)]
+        for op, reg in tests:
+            #   Value: 0x3a  0011 1010
+            #   DCR:   0x39  0011 1001
+            self._set_flags()
+            self.machine._flags[Flags.PARITY] = 0
+            self.set_register(reg, 0x3a)
+            self.machine.dcr(op)
+            self.assertEqual(self.machine._registers[reg], 0x39)
+            self._test_flag(Flags.ZERO, "Zero", 0) 
+            self._test_flag(Flags.SIGN, "Sign", 0) 
+            self._test_flag(Flags.PARITY, "Parity", 1) 
+            self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0) 
+            self._test_flag(Flags.CARRY, "Carry", 1) 
+        
+        # test DCR M
+        self.machine._flags[Flags.PARITY] = 0
+        self.machine._flags[Flags.CARRY] = 1  # to make sure it isn't cleared 
+        self.machine.write_memory(0xbbbb, 0x3a)
+        self.set_register(Registers.H, 0xbb)
+        self.set_register(Registers.L, 0xbb)
+        self.machine.dcr(0x35)
+
+        val = self.machine.read_memory(0xbbbb, 1)[0]
+        self.assertEqual(val, 0x39)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        
+        # zero flag
+        self.set_register(Registers.B, 1)
+        self.machine._flags[Flags.ZERO] = 0
+        self.machine.dcr(0x05)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+
+        # sign flag
+        self.machine._flags[Flags.SIGN] = 0
+        self.machine.dcr(0x05)
+        self.assertEqual(self.machine._registers[Registers.B], 0xff)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        # aux carry
+        self.machine._flags[Flags.AUX_CARRY] = 0
+        self.machine._registers[Registers.B] = 0x40
+        self.machine.dcr(0x05)
+        self.assertEqual(self.machine._registers[Registers.B], 0x3f)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+
+        
