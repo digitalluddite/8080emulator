@@ -1,3 +1,4 @@
+
 from unittest import TestCase
 
 from utils import byte_to_signed_int, int_to_signed_byte
@@ -12,13 +13,11 @@ class TestTo_signed_binary(TestCase):
         v = 0x80
         for x in range(-128, 1):
             y = int_to_signed_byte(x)
-            print(f'Comparing (x={x}) {v} to {y}')
             self.assertEqual(v, y)
             v = (v+1) % 256 
         v = 1
         for x in range(1, 128):
             y = int_to_signed_byte(x)
-            print(f'Comparing (x={x}) {v} to {y}')
             self.assertEqual(v, y)
             v += 1
 
