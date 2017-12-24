@@ -95,7 +95,7 @@ class Machine8080:
             OpCode(int('06', 16), 2, "MVI B", "immediate", self.mvi),
             OpCode(int('07', 16), 1, "RLC", "none", self.rlc),
             OpCode(int('08', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('09', 16), 1, "DAD B", "none", self.unhandled_instruction),
+            OpCode(int('09', 16), 1, "DAD B", "none", self.dad),
             OpCode(int('0a', 16), 1, "LDAX B", "none", self.ldax),
             OpCode(int('0b', 16), 1, "DCX B", "none", self.dcx),
             OpCode(int('0c', 16), 1, "INR C", "none", self.inr),
@@ -111,7 +111,7 @@ class Machine8080:
             OpCode(int('16', 16), 2, "MVI D,", "immediate", self.mvi),
             OpCode(int('17', 16), 1, "RAL", "none", self.ral),
             OpCode(int('18', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('19', 16), 1, "DAD D", "none", self.unhandled_instruction),
+            OpCode(int('19', 16), 1, "DAD D", "none", self.dad),
             OpCode(int('1a', 16), 1, "LDAX D", "none", self.ldax),
             OpCode(int('1b', 16), 1, "DCX D", "none", self.dcx),
             OpCode(int('1c', 16), 1, "INR E", "none", self.inr),
@@ -127,7 +127,7 @@ class Machine8080:
             OpCode(int('26', 16), 2, "MVI H,", "immediate", self.mvi),
             OpCode(int('27', 16), 1, "DAA", "none", self.unhandled_instruction),
             OpCode(int('28', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('29', 16), 1, "DAD H", "none", self.unhandled_instruction),
+            OpCode(int('29', 16), 1, "DAD H", "none", self.dad),
             OpCode(int('2a', 16), 3, "LHLD", "address", self.lhld),
             OpCode(int('2b', 16), 1, "DCX H", "none", self.dcx),
             OpCode(int('2c', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
@@ -143,7 +143,7 @@ class Machine8080:
             OpCode(int('36', 16), 2, "MVI M,", "immediate", self.mvi),
             OpCode(int('37', 16), 1, "STC", "none", self.stc),
             OpCode(int('38', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('39', 16), 1, "DAD SP", "none", self.unhandled_instruction),
+            OpCode(int('39', 16), 1, "DAD SP", "none", self.dad),
             OpCode(int('3a', 16), 3, "LDA", "address", self.lda),
             OpCode(int('3b', 16), 1, "DCX SP", "none", self.dcx),
             OpCode(int('3c', 16), 1, "INR A", "none", self.inr),
@@ -482,7 +482,7 @@ class Machine8080:
                 self.write_memory(addr, self._registers[src])
 
     def unhandled_instruction(self, opcode, *args):
-        logging.warning("Unhandled instruction: {0}".format(self.opcodes[opcode]))
+        logging.warning(f'Unhandled instruction: {opcode:02X}')
 
     def stax(self, opcode, *args):
         """
@@ -1130,6 +1130,34 @@ class Machine8080:
         self._flags.set_zero(val)
         self._flags.set_sign(val)
         self._set_register_value(reg, val)
+
+    def dad(self, opcode, *args):
+        """
+        Add register pair to H and L
+
+        (H)(L) <- (H)(L) + (RH)(RL)
+
+        Instruction format 00RP1001
+        
+        Only Carry bit is set.
+        """
+        logging.info(f'DAD {opcode:02X}')
+        pair = (opcode >> 4) & 0x3
+        pair = self._registers.get_pairs(pair) 
+        hl = self._registers.get_pairs(0x02)
+
+        hl_val = self._registers.get_value_from_pair(hl)
+        val = self._registers.get_value_from_pair(pair)
+
+        logging.debug(f'HL value: {hl_val:04X}  Value {val:04X}')
+        hl_val += val
+        logging.debug(f'New total: {hl_val:04X}')
+
+        self._flags[Flags.CARRY] = 0
+        if hl_val > 0xffff:
+            self._flags[Flags.CARRY] = 1
+        hl_val = (hl_val & 0xffff)
+        self._registers.set_value_pair(hl, hl_val) 
 
 
 if __name__ == "__main__":

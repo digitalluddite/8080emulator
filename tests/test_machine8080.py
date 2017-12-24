@@ -10,7 +10,7 @@ class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
         self.machine.load("rom")
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
 
     def test_read_memory(self):
         membytes = self.machine.read_memory(0, 10)
@@ -987,4 +987,29 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers[Registers.B], 0x3f)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
 
-        
+    def test_dad(self):
+        """Add register pair to H and L.
+
+        Carry flag is set.
+        """
+        # (opcode, RegisterPair encoding)
+        tests = [(0x09, 0x00), (0x19, 0x01), (0x29, 0x02)]
+        hl = self.machine._registers.get_pairs(0x02) # get HL RegisterPair
+
+        for op, reg in tests:
+            pair = self.machine._registers.get_pairs(reg)
+            self.machine._flags[Flags.CARRY] = 0x00
+            self.machine._registers.set_value_pair(pair, 0xaaaa)
+            self.machine._registers.set_value_pair(hl, 0x0001)
+            self.machine.dad(op)
+            expected = 0xaaab if reg != 0x02 else 0x0002
+            self.assertEqual(self.machine._registers.get_value_from_pair(hl), expected)
+            self._test_flag(Flags.CARRY, "Carry", 0) 
+
+        self.machine._registers.set_value_pair(hl, 0xffff)
+        self.set_register(Registers.B, 0x00)
+        self.set_register(Registers.C, 0x01)
+        self.machine.dad(0x09)
+        self.assertEqual(self.machine._registers.get_value_from_pair(hl), 0x0000)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+
