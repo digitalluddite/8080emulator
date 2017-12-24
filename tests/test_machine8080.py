@@ -1013,3 +1013,24 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers.get_value_from_pair(hl), 0x0000)
         self._test_flag(Flags.CARRY, "Carry", 1)
 
+    def test_rst(self):
+        """
+        (SP)-1 <- (PCH)
+        (SP)-2 <- (PCL)
+        (SP)   <- (SP)-2
+        PC     <- 8 * NNN
+
+        Instruction format:  11NNN111
+        """
+        opcodes = [0xff, 0xf7, 0xef, 0xe7, 0xdf, 0xd7, 0xcf, 0xc7]
+        for op in opcodes:
+            nnn = (op >> 3) & 0x7
+            self.machine._pc = 0x1234
+            self.machine._sp = 0x4321
+            self.machine.rst(op)
+            self.assertEqual(self.machine._sp, 0x431F)
+            lo,hi = self.machine.read_memory(self.machine._sp, 2)
+            self.assertEqual(lo, 0x34)
+            self.assertEqual(hi, 0x12) 
+            self.assertEqual(self.machine._pc, 8*nnn)
+

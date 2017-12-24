@@ -285,7 +285,7 @@ class Machine8080:
             OpCode(int('c4', 16), 3, "CNZ", "address", self.conditional_call),
             OpCode(int('c5', 16), 1, "PUSH B", "none", self.push_pair),
             OpCode(int('c6', 16), 2, "ADI", "immediate", self.unhandled_instruction),
-            OpCode(int('c7', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('c7', 16), 1, "RST", "none", self.rst),
             OpCode(int('c8', 16), 1, "RZ", "none", self.conditional_ret),
             OpCode(int('c9', 16), 1, "RET", "none", self.ret),
             OpCode(int('ca', 16), 3, "JZ", "address", self.conditional_jmp),
@@ -293,7 +293,7 @@ class Machine8080:
             OpCode(int('cc', 16), 3, "CZ", "address", self.conditional_call),
             OpCode(int('cd', 16), 3, "CALL", "address", self.call),
             OpCode(int('ce', 16), 2, "ACI", "immediate", self.unhandled_instruction),
-            OpCode(int('cf', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('cf', 16), 1, "RST", "none", self.rst),
             OpCode(int('d0', 16), 1, "RNC", "none", self.conditional_ret),
             OpCode(int('d1', 16), 1, "POP D", "none", self.pop_pair),
             OpCode(int('d2', 16), 3, "JNC", "address", self.conditional_jmp),
@@ -301,7 +301,7 @@ class Machine8080:
             OpCode(int('d4', 16), 3, "CNC", "address", self.conditional_call),
             OpCode(int('d5', 16), 1, "PUSH D", "none", self.push_pair),
             OpCode(int('d6', 16), 2, "SUI", "immediate", self.unhandled_instruction),
-            OpCode(int('d7', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('d7', 16), 1, "RST", "none", self.rst),
             OpCode(int('d8', 16), 1, "RC", "none", self.conditional_ret),
             OpCode(int('d9', 16), 1, "UNKONWN", "none", self.unhandled_instruction),
             OpCode(int('da', 16), 3, "JC", "address", self.conditional_jmp),
@@ -309,7 +309,7 @@ class Machine8080:
             OpCode(int('dc', 16), 3, "CC", "address", self.conditional_call),
             OpCode(int('dd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('de', 16), 2, "SBI", "immediate", self.unhandled_instruction),
-            OpCode(int('df', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('df', 16), 1, "RST", "none", self.rst),
             OpCode(int('e0', 16), 1, "RPO", "none", self.conditional_ret),
             OpCode(int('e1', 16), 1, "POP H", "none", self.pop_pair),
             OpCode(int('e2', 16), 3, "JPO", "address", self.conditional_jmp),
@@ -317,7 +317,7 @@ class Machine8080:
             OpCode(int('e4', 16), 3, "CPO", "address", self.conditional_call),
             OpCode(int('e5', 16), 1, "PUSH H", "none", self.push_pair),
             OpCode(int('e6', 16), 2, "ANI", "immediate", self.unhandled_instruction),
-            OpCode(int('e7', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('e7', 16), 1, "RST", "none", self.rst),
             OpCode(int('e8', 16), 1, "RPE", "none", self.conditional_ret),
             OpCode(int('e9', 16), 1, "PCHL", "none", self.pchl),
             OpCode(int('ea', 16), 3, "JPE", "address", self.conditional_jmp),
@@ -325,7 +325,7 @@ class Machine8080:
             OpCode(int('ec', 16), 3, "CPE", "address", self.conditional_call),
             OpCode(int('ed', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('ee', 16), 2, "XRI", "immediate", self.xri),
-            OpCode(int('ef', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('ef', 16), 1, "RST", "none", self.rst),
             OpCode(int('f0', 16), 1, "RP", "none", self.conditional_ret),
             OpCode(int('f1', 16), 1, "POP PSW", "none", self.pop_psw),
             OpCode(int('f2', 16), 3, "JP", "address", self.conditional_jmp),
@@ -333,7 +333,7 @@ class Machine8080:
             OpCode(int('f4', 16), 3, "CP", "address", self.conditional_call),
             OpCode(int('f5', 16), 1, "PUSH PSW", "none", self.push_psw),
             OpCode(int('f6', 16), 2, "ORI", "immediate", self.ori),
-            OpCode(int('f7', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('f7', 16), 1, "RST", "none", self.rst),
             OpCode(int('f8', 16), 1, "RM", "none", self.conditional_ret),
             OpCode(int('f9', 16), 1, "SPHL", "none", self.sphl),
             OpCode(int('fa', 16), 3, "JM", "address", self.conditional_jmp),
@@ -341,7 +341,7 @@ class Machine8080:
             OpCode(int('fc', 16), 3, "CM", "address", self.conditional_call),
             OpCode(int('fd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('fe', 16), 2, "CPI", "immediate", self.unhandled_instruction),
-            OpCode(int('ff', 16), 1, "RST", "none", self.unhandled_instruction),
+            OpCode(int('ff', 16), 1, "RST", "none", self.rst),
         )
 
     def load(self, romfile):
@@ -1158,6 +1158,21 @@ class Machine8080:
             self._flags[Flags.CARRY] = 1
         hl_val = (hl_val & 0xffff)
         self._registers.set_value_pair(hl, hl_val) 
+
+    def rst(self, opcode, *args):
+        """
+        (SP)-1 <- (PCH)
+        (SP)-2 <- (PCL)
+        (SP)   <- (SP)-2
+        PC     <- 8 * NNN
+
+        Instruction format:  11NNN111
+        """
+        logging.info(f'RST {opcode:02X}')
+        self.write_memory(self._sp - 1, (self._pc  >> 8) & 0xff)
+        self.write_memory(self._sp - 2, self._pc & 0xff)
+        self._sp -= 2
+        self._pc = 8 * ((opcode >> 3)&0x7)
 
 
 if __name__ == "__main__":
