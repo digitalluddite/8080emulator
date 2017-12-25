@@ -1033,4 +1033,33 @@ class TestMachine8080(TestCase):
             self.assertEqual(lo, 0x34)
             self.assertEqual(hi, 0x12) 
             self.assertEqual(self.machine._pc, 8*nnn)
+    
+    def test_adi(self):
+        """
+        (A) <- (A) + operand
+        Flags: Z,S,P,CY,AC
+        """
+        self.set_register(Registers.A, 0x33)
+        self._clear_flags()
+        self.machine.adi(0xc6, 0x10)
+        self.assertEqual(self.machine._registers[Registers.A], 0x43)
+        for f in self.machine._flags:
+            self.assertEqual(f, 0)  
+        
+        # zero, carry, and parity flag
+        self.set_register(Registers.A, 0xff)
+        self._clear_flags()
+        self.machine.adi(0xc6, 0x01)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+    
+        # sign aux. carry flag
+        self._clear_flags()
+        self.set_register(Registers.A, 0x7f)
+        self.machine.adi(0xc6, 0x01)
+        self.assertEqual(self.machine._registers[Registers.A], 0x80)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
 

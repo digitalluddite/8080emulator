@@ -284,7 +284,7 @@ class Machine8080:
             OpCode(int('c3', 16), 3, "JMP", "address", self.jmp),
             OpCode(int('c4', 16), 3, "CNZ", "address", self.conditional_call),
             OpCode(int('c5', 16), 1, "PUSH B", "none", self.push_pair),
-            OpCode(int('c6', 16), 2, "ADI", "immediate", self.unhandled_instruction),
+            OpCode(int('c6', 16), 2, "ADI", "immediate", self.adi),
             OpCode(int('c7', 16), 1, "RST", "none", self.rst),
             OpCode(int('c8', 16), 1, "RZ", "none", self.conditional_ret),
             OpCode(int('c9', 16), 1, "RET", "none", self.ret),
@@ -1173,6 +1173,29 @@ class Machine8080:
         self.write_memory(self._sp - 2, self._pc & 0xff)
         self._sp -= 2
         self._pc = 8 * ((opcode >> 3)&0x7)
+
+    def adi(self, opcode, *operands):
+        """
+        (A) <- (A) + operands[0]
+
+        Flags: Z, S, P, CY, AC
+        """
+        self._flags[Flags.CARRY] = 0
+        self._flags[Flags.AUX_CARRY] = 0
+
+        A = self._registers[Registers.A]
+        if A & 0xf == 0xf:
+            self._flags[Flags.AUX_CARRY] = 1
+        if A == 0xff:
+            self._flags[Flags.CARRY] = 1
+
+        A = (A + operands[0]) & 0xff
+        self._flags.set_zero(A)
+
+        self._flags.calculate_parity(A)
+        self._flags.set_zero(A)
+        self._flags.set_sign(A)
+        self._registers[Registers.A] = A
 
 
 if __name__ == "__main__":
