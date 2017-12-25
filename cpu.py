@@ -38,6 +38,13 @@ class Flags:
                             Flags.AUX_CARRY, Flags.ZERO,
                             Flags.SIGN)
 
+    def __len__(self):
+        return 5
+
+    def __iter__(self):
+        for f in self._valid_bits:
+            yield (self.flags & 2 ** f) >> f
+
     def set(self, bit):
         """
         Sets (to one) the given condition flag
