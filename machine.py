@@ -1185,13 +1185,12 @@ class Machine8080:
         self._flags[Flags.AUX_CARRY] = 0
 
         A = self._registers[Registers.A]
-        if (A & 0xf) + operands[0] > 0xf:
+        if (A & 0xf) + (operands[0]&0xf) > 0xf:
             self._flags[Flags.AUX_CARRY] = 1
         if A + operands[0] > 0xff:
             self._flags[Flags.CARRY] = 1
 
         A = (A + operands[0]) & 0xff
-        self._flags.set_zero(A)
 
         self._flags.calculate_parity(A)
         self._flags.set_zero(A)
@@ -1205,12 +1204,27 @@ class Machine8080:
         Instruction format: 10000SSS
         Flags: Z, S, P, CY, AC
         """
+        self._flags[Flags.CARRY] = 0
+        self._flags[Flags.AUX_CARRY] = 0
+
         reg = Registers.get_register_from_opcode(opcode, 0)
         if reg == Registers.M:
             addr = self._registers.get_address_from_pair(Registers.H)
             val = self.read_memory(addr, 1)[0]
         else:
             val = self._registers[reg]
+
+        A = self._registers[Registers.A]
+        if (A&0xf) + (val&0xf) > 0xf:
+            self._flags[Flags.AUX_CARRY] = 1
+        if A + val > 0xff:
+            self._flags[Flags.CARRY] = 1
+
+        A = (A + val) & 0xff
+        self._flags.set_zero(A)
+        self._flags.calculate_parity(A)
+        self._flags.set_sign(A)
+        self._registers[Registers.A] = A
 
 
 if __name__ == "__main__":

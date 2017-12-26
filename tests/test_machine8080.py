@@ -1091,14 +1091,14 @@ class TestMachine8080(TestCase):
             self._test_flag(Flags.ZERO, "ZERO", 0)
 
         self._clear_flags()
-        self.set_register(Registers.A, 0x7f)
+        self.set_register(Registers.A, 0xff)
         self.machine.add(0x87)
         self.assertEqual(self.machine._registers[Registers.A], 0xFE) # 1111 1110
         self._test_flag(Flags.SIGN, "Sign", 1)
         self._test_flag(Flags.CARRY, "Carry", 1)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
 
-        self.clear_flags()
+        self._clear_flags()
         self.set_register(Registers.A, 0x3)
         self.machine.add(0x87)
         self.assertEqual(self.machine._registers[Registers.A], 0x6)
