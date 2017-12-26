@@ -214,14 +214,14 @@ class Machine8080:
             OpCode(int('7d', 16), 1, "MOV A,L", "none", self.mov),
             OpCode(int('7e', 16), 1, "MOV A,M", "none", self.mov),
             OpCode(int('7f', 16), 1, "MOV A,A", "none", self.mov),
-            OpCode(int('80', 16), 1, "ADD B", "none", self.unhandled_instruction),
-            OpCode(int('81', 16), 1, "ADD C", "none", self.unhandled_instruction),
-            OpCode(int('82', 16), 1, "ADD D", "none", self.unhandled_instruction),
-            OpCode(int('83', 16), 1, "ADD E", "none", self.unhandled_instruction),
-            OpCode(int('84', 16), 1, "ADD H", "none", self.unhandled_instruction),
-            OpCode(int('85', 16), 1, "ADD L", "none", self.unhandled_instruction),
-            OpCode(int('86', 16), 1, "ADD M", "none", self.unhandled_instruction),
-            OpCode(int('87', 16), 1, "ADD A", "none", self.unhandled_instruction),
+            OpCode(int('80', 16), 1, "ADD B", "none", self.add),
+            OpCode(int('81', 16), 1, "ADD C", "none", self.add),
+            OpCode(int('82', 16), 1, "ADD D", "none", self.add),
+            OpCode(int('83', 16), 1, "ADD E", "none", self.add),
+            OpCode(int('84', 16), 1, "ADD H", "none", self.add),
+            OpCode(int('85', 16), 1, "ADD L", "none", self.add),
+            OpCode(int('86', 16), 1, "ADD M", "none", self.add),
+            OpCode(int('87', 16), 1, "ADD A", "none", self.add),
             OpCode(int('88', 16), 1, "ADC B", "none", self.unhandled_instruction),
             OpCode(int('89', 16), 1, "ADC C", "none", self.unhandled_instruction),
             OpCode(int('8a', 16), 1, "ADC D", "none", self.unhandled_instruction),
@@ -1180,13 +1180,14 @@ class Machine8080:
 
         Flags: Z, S, P, CY, AC
         """
+        logging.info(f'ADI {operands[0]:02X}')
         self._flags[Flags.CARRY] = 0
         self._flags[Flags.AUX_CARRY] = 0
 
         A = self._registers[Registers.A]
-        if A & 0xf == 0xf:
+        if (A & 0xf) + operands[0] > 0xf:
             self._flags[Flags.AUX_CARRY] = 1
-        if A == 0xff:
+        if A + operands[0] > 0xff:
             self._flags[Flags.CARRY] = 1
 
         A = (A + operands[0]) & 0xff
@@ -1196,6 +1197,20 @@ class Machine8080:
         self._flags.set_zero(A)
         self._flags.set_sign(A)
         self._registers[Registers.A] = A
+
+    def add(self, opcode, *args):
+        """
+        (A) <- (A) + (r)
+
+        Instruction format: 10000SSS
+        Flags: Z, S, P, CY, AC
+        """
+        reg = Registers.get_register_from_opcode(opcode, 0)
+        if reg == Registers.M:
+            addr = self._registers.get_address_from_pair(Registers.H)
+            val = self.read_memory(addr, 1)[0]
+        else:
+            val = self._registers[reg]
 
 
 if __name__ == "__main__":

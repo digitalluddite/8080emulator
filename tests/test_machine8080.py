@@ -1062,4 +1062,60 @@ class TestMachine8080(TestCase):
         self.assertEqual(self.machine._registers[Registers.A], 0x80)
         self._test_flag(Flags.SIGN, "Sign", 1)
 
+        # test that adding zero leaves things unchanged
+        self._clear_flags()
+        self.set_register(Registers.A, 0x7f)
+        self.machine.adi(0xc6, 0x00)
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+
+    def test_add(self):
+        """
+        (A) <- (A) + (r)
+
+        Instruction format: 10000SSS
+        Flags: Z, S, P, CY, AC
+        """
+        tests = [(0x80, Registers.B), (0x81, Registers.C), (0x82, Registers.D),
+                 (0x83, Registers.E), (0x84, Registers.H), (0x85, Registers.L)]
+        for op, reg in tests:
+            self._clear_flags()
+            self.set_register(reg, 0x23)  # 0010 0011
+            self.set_register(Registers.A, 0xa4)  # 1010 0100  (-57) 0xc7
+            self.machine.add(op)
+            self.assertEqual(self.machine._registers[Registers.A], 0xc7)  # 1100 0111
+            self._test_flag(Flags.SIGN, "Sign", 1)
+            self._test_flag(Flags.PARITY, "Parity", 0)
+            self._test_flag(Flags.CARRY, "Carry", 0)
+            self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+            self._test_flag(Flags.ZERO, "ZERO", 0)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0x7f)
+        self.machine.add(0x87)
+        self.assertEqual(self.machine._registers[Registers.A], 0xFE) # 1111 1110
+        self._test_flag(Flags.SIGN, "Sign", 1)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+
+        self.clear_flags()
+        self.set_register(Registers.A, 0x3)
+        self.machine.add(0x87)
+        self.assertEqual(self.machine._registers[Registers.A], 0x6)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
+        self.set_register(Registers.B, 1)
+        self.set_register(Registers.A, 0xff)
+        self.machine.add(0x80)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+
+        self.machine.write_memory(0x3434, 0x3)
+        self.set_register(Registers.A, 0x1)
+        self.set_register(Registers.H, 0x34)
+        self.set_register(Registers.L, 0x34)
+        self.machine.add(0x86)
+        self.assertEqual(self.machine._registers[Registers.A], 0x4)
+
+
 
