@@ -566,6 +566,7 @@ class Machine8080:
         :param args:
         :return:
         """
+        logging.info(f'ANA {opcode:02X}')
         reg = self._registers.get_register_from_opcode(opcode, 0)
         if reg == Registers.M:
             val, *_ = self.read_memory(self._registers.get_address_from_pair(Registers.H), 1)
@@ -620,6 +621,7 @@ class Machine8080:
         :param opcode:
         :param args:
         """
+        logging.info(f'XRA {opcode:02X}')
         reg = self._registers.get_register_from_opcode(opcode, 0)
         if reg == Registers.M:
             val, *_ = self.read_memory(self._registers.get_address_from_pair(Registers.H), 1)
