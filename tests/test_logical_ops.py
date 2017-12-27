@@ -115,6 +115,13 @@ class LogicalOpsTests(TestCase):
         self.machine.ana(0xa2)
         self._test_flag(Flags.SIGN, "Sign", 0)
 
+    def test_ani(self):
+        """Logical AND the immediate byte with the accumulator
+        CY and AC are cleared
+        Other flags set appropriately
+        """
+        pass
+
     def test_xra(self):
         """
         Exclusive-OR the register (or memory) specified in the opcode
