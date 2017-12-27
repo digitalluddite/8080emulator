@@ -316,7 +316,7 @@ class Machine8080:
             OpCode(int('e3', 16), 1, "XTHL", "none", self.xthl),
             OpCode(int('e4', 16), 3, "CPO", "address", self.conditional_call),
             OpCode(int('e5', 16), 1, "PUSH H", "none", self.push_pair),
-            OpCode(int('e6', 16), 2, "ANI", "immediate", self.unhandled_instruction),
+            OpCode(int('e6', 16), 2, "ANI", "immediate", self.ani),
             OpCode(int('e7', 16), 1, "RST", "none", self.rst),
             OpCode(int('e8', 16), 1, "RPE", "none", self.conditional_ret),
             OpCode(int('e9', 16), 1, "PCHL", "none", self.pchl),
@@ -579,6 +579,13 @@ class Machine8080:
         self._flags.calculate_parity(res)
         self._flags.set_zero(res)
         self._flags.set_sign(res)
+
+    def ani(self, opcode, *operands):
+        """Logical AND the immediate byte with the accumulator.
+
+        CY and AC are reset
+        """
+        pass
 
     def _internal_or(self, val, orfunc):
         """[A] = orfunc([A], val)
