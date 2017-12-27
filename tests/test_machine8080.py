@@ -1169,3 +1169,37 @@ class TestMachine8080(TestCase):
         self.machine.adc(0x88)
         self._test_flag(Flags.SIGN, "Sign", 1)
 
+    def test_aci(self):
+        """Add immediate with carry.
+        (A) <- (A) + CY + operands[0]
+
+        Flags: Z, S, P, CY, AC
+        """
+        self._clear_flags()
+        self.set_register(Registers.A, 0x12)
+        self.machine.aci(0xce, 0x12)
+        self.assertEqual(self.machine._registers[Registers.A], 0x24)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
+        self._clear_flags()
+        self.machine._flags[Flags.PARITY] = 1
+        self.machine._flags[Flags.CARRY] = 1
+        self.set_register(Registers.A, 0x1)
+        self.machine.aci(0xce, 0x0)
+        self.assertEqual(self.machine._registers[Registers.A], 0x2)
+        for f in self.machine._flags:
+            self.assertEqual(f, 0)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0x1)
+        self.machine.aci(0xce, 0xff)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0x2)
+        self.machine.aci(0xce, 0x7f)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+

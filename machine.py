@@ -292,7 +292,7 @@ class Machine8080:
             OpCode(int('cb', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('cc', 16), 3, "CZ", "address", self.conditional_call),
             OpCode(int('cd', 16), 3, "CALL", "address", self.call),
-            OpCode(int('ce', 16), 2, "ACI", "immediate", self.unhandled_instruction),
+            OpCode(int('ce', 16), 2, "ACI", "immediate", self.aci),
             OpCode(int('cf', 16), 1, "RST", "none", self.rst),
             OpCode(int('d0', 16), 1, "RNC", "none", self.conditional_ret),
             OpCode(int('d1', 16), 1, "POP D", "none", self.pop_pair),
@@ -1227,6 +1227,28 @@ class Machine8080:
         self._flags.set_sign(A)
         self._registers[Registers.A] = A
 
+    def _add_accumulator(self, val):
+        """Add accumulator with val.
+
+        Sets Z, S, P, CY, AC as appropriate.
+        """
+        A = self._registers[Registers.A]
+        if (A&0xf) + (val&0xf) > 0xf:
+            self._flags[Flags.AUX_CARRY] = 1
+        else:
+            self._flags[Flags.AUX_CARRY] = 0
+
+        if A + val > 0xff:
+            self._flags[Flags.CARRY] = 1
+        else:
+            self._flags[Flags.CARRY] = 0
+
+        A = (A + val)&0xff
+        self._flags.set_zero(A)
+        self._flags.calculate_parity(A)
+        self._flags.set_sign(A)
+        self._registers[Registers.A] = A
+
     def adc(self, opcode, *args):
         """Add with Carry
 
@@ -1248,23 +1270,18 @@ class Machine8080:
         else:
             val = self._registers[reg]
            
-        A = self._registers[Registers.A]
         val += CY
-        if (A&0xf) + (val&0xf) > 0xf:
-            self._flags[Flags.AUX_CARRY] = 1
-        else:
-            self._flags[Flags.AUX_CARRY] = 0
+        self._add_accumulator(val)
 
-        if A + val > 0xff:
-            self._flags[Flags.CARRY] = 1
-        else:
-            self._flags[Flags.CARRY] = 0
+    def aci(self, opcode, *operands):
+        """Add immediate with carry.
+        (A) <- (A) + CY + operands[0]
 
-        A = (A + val)&0xff
-        self._flags.set_zero(A)
-        self._flags.calculate_parity(A)
-        self._flags.set_sign(A)
-        self._registers[Registers.A] = A
+        Flags: Z, S, P, CY, AC
+        """
+        logging.info(f'ACI {operands[0]:02X}')
+        val = operands[0] + self._flags[Flags.CARRY]
+        self._add_accumulator(val)
         
 
 if __name__ == "__main__":
