@@ -222,14 +222,14 @@ class Machine8080:
             OpCode(int('85', 16), 1, "ADD L", "none", self.add),
             OpCode(int('86', 16), 1, "ADD M", "none", self.add),
             OpCode(int('87', 16), 1, "ADD A", "none", self.add),
-            OpCode(int('88', 16), 1, "ADC B", "none", self.unhandled_instruction),
-            OpCode(int('89', 16), 1, "ADC C", "none", self.unhandled_instruction),
-            OpCode(int('8a', 16), 1, "ADC D", "none", self.unhandled_instruction),
-            OpCode(int('8b', 16), 1, "ADC E", "none", self.unhandled_instruction),
-            OpCode(int('8c', 16), 1, "ADC H", "none", self.unhandled_instruction),
-            OpCode(int('8d', 16), 1, "ADC L", "none", self.unhandled_instruction),
-            OpCode(int('8e', 16), 1, "ADC M", "none", self.unhandled_instruction),
-            OpCode(int('8f', 16), 1, "ADC A", "none", self.unhandled_instruction),
+            OpCode(int('88', 16), 1, "ADC B", "none", self.adc),
+            OpCode(int('89', 16), 1, "ADC C", "none", self.adc),
+            OpCode(int('8a', 16), 1, "ADC D", "none", self.adc),
+            OpCode(int('8b', 16), 1, "ADC E", "none", self.adc),
+            OpCode(int('8c', 16), 1, "ADC H", "none", self.adc),
+            OpCode(int('8d', 16), 1, "ADC L", "none", self.adc),
+            OpCode(int('8e', 16), 1, "ADC M", "none", self.adc),
+            OpCode(int('8f', 16), 1, "ADC A", "none", self.adc),
             OpCode(int('90', 16), 1, "SUB B", "none", self.unhandled_instruction),
             OpCode(int('91', 16), 1, "SUB C", "none", self.unhandled_instruction),
             OpCode(int('92', 16), 1, "SUB D", "none", self.unhandled_instruction),
@@ -1204,6 +1204,7 @@ class Machine8080:
         Instruction format: 10000SSS
         Flags: Z, S, P, CY, AC
         """
+        logging.info(f'ADD {opcode:02X}')
         self._flags[Flags.CARRY] = 0
         self._flags[Flags.AUX_CARRY] = 0
 
@@ -1226,6 +1227,45 @@ class Machine8080:
         self._flags.set_sign(A)
         self._registers[Registers.A] = A
 
+    def adc(self, opcode, *args):
+        """Add with Carry
+
+        The content of the register (or memory) and the content of the 
+        carry bit are added to the accumulator.
+        (A) <- (A) + (r) + CY
+
+        instruction format: 10001SSS
+        
+        Flags: Z, S, P, CY, AC
+        """
+        logging.info(f'ADC {opcode:02X}')
+        CY = self._flags[Flags.CARRY]
+
+        reg = self._registers.get_register_from_opcode(opcode, 0)
+        if reg == Registers.M:
+            addr = self._registers.get_address_from_pair(Registers.H)
+            val = self.read_memory(addr, 1)[0]
+        else:
+            val = self._registers[reg]
+           
+        A = self._registers[Registers.A]
+        val += CY
+        if (A&0xf) + (val&0xf) > 0xf:
+            self._flags[Flags.AUX_CARRY] = 1
+        else:
+            self._flags[Flags.AUX_CARRY] = 0
+
+        if A + val > 0xff:
+            self._flags[Flags.CARRY] = 1
+        else:
+            self._flags[Flags.CARRY] = 0
+
+        A = (A + val)&0xff
+        self._flags.set_zero(A)
+        self._flags.calculate_parity(A)
+        self._flags.set_sign(A)
+        self._registers[Registers.A] = A
+        
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

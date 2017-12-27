@@ -1117,5 +1117,55 @@ class TestMachine8080(TestCase):
         self.machine.add(0x86)
         self.assertEqual(self.machine._registers[Registers.A], 0x4)
 
+    def test_adc(self):
+        """Add with Carry
 
+        The content of the register (or memory) and the content of the 
+        carry bit are added to the accumulator.
+        (A) <- (A) + (r) + CY
+
+        instruction format: 10001SSS
+        
+        Flags: Z, S, P, CY, AC
+        """
+        tests = [(0x88, Registers.B), (0x89, Registers.C), (0x8a, Registers.D),
+                 (0x8b, Registers.E), (0x8b, Registers.H), (0x8c, Registers.L)]
+
+        for op, reg in tests:
+            self._clear_flags()
+            self.set_register(reg, 0x12)
+            self.set_register(Registers.A, 0x12)
+            self.machine.adc(op)
+            self.assertEqual(self.machine._registers[Registers.A], 0x24)
+            self._test_flag(Flags.CARRY, "Carry", 0)
+            self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+            self._test_flag(Flags.SIGN, "Sign", 0)
+            self._test_flag(Flags.ZERO, "ZERO", 0)
+            self._test_flag(Flags.PARITY, "Parity", 1)
+
+        # parity
+        self._clear_flags()
+        self.machine._flags[Flags.PARITY] = 1
+        self.machine._flags[Flags.CARRY] = 1
+        self.set_register(Registers.B, 0x1)
+        self.set_register(Registers.A, 0x0)
+        self.machine.adc(0x88)
+        self.assertEqual(self.machine._registers[Registers.A], 0x2)
+        for f in self.machine._flags:
+            self.assertEqual(f, 0)
+
+        self._clear_flags()
+        self.set_register(Registers.B, 0xff)
+        self.set_register(Registers.A, 0x1)
+        self.machine.adc(0x88)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+
+        self._clear_flags()
+        self.set_register(Registers.B, 0x7f)
+        self.set_register(Registers.A, 0x2)
+        self.machine.adc(0x88)
+        self._test_flag(Flags.SIGN, "Sign", 1)
 
