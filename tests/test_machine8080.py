@@ -573,6 +573,37 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
+    def test_cpi(self):
+        """Same as cmp but with an immediate value instead of in a register.
+        """
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.cpi(0xfe, 0x80)  # 0xd9  1101 1001
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0x59)
+
+        self._clear_flags()
+        #  0101 1001
+        #  0100 1010
+        self.machine.cpi(0xfe, 0x4a)  # 0000 1111
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+
+        self._clear_flags()
+        self.machine.cpi(0xfe, 0x60)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0x60)
+        self.machine.cpi(0xfe, 0x60)  # 0x81 1000 0001
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
     def test_inx(self):
         tests = [(0x03, Registers.B, Registers.C), (0x13, Registers.D, Registers.E),
                  (0x23, Registers.H, Registers.L)]

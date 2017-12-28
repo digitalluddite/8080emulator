@@ -340,7 +340,7 @@ class Machine8080:
             OpCode(int('fb', 16), 1, "EI", "none", self.unhandled_instruction),
             OpCode(int('fc', 16), 3, "CM", "address", self.conditional_call),
             OpCode(int('fd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('fe', 16), 2, "CPI", "immediate", self.unhandled_instruction),
+            OpCode(int('fe', 16), 2, "CPI", "immediate", self.cpi),
             OpCode(int('ff', 16), 1, "RST", "none", self.rst),
         )
 
@@ -1018,6 +1018,22 @@ class Machine8080:
         A = ((A >> 1) & 0xff) | (cy << 7)
         self._registers[Registers.A] = A
 
+    def _internal_cmp(self, val):
+        val = byte_to_signed_int(val)
+        A = byte_to_signed_int(self._registers[Registers.A])
+
+        self._flags.clear_all()
+        if A < val:
+            self._flags.set(Flags.CARRY)
+            self._flags.set(Flags.SIGN)
+        if (A&0x0f) < (val&0x0f):
+            self._flags.set(Flags.AUX_CARRY)
+        A -= val
+        if A == 0:
+            self._flags.set(Flags.ZERO)
+        b = int_to_signed_byte(A)
+        self._flags.calculate_parity(b)
+
     def cmp(self, opcode, *args):
         """
         Instruction format: 10111SSS
@@ -1036,19 +1052,14 @@ class Machine8080:
             val, *_ = self.read_memory(address, 1)
         else:
             val = self._registers[reg]
-        val = byte_to_signed_int(val)
-        A = byte_to_signed_int(self._registers[Registers.A])
-        self._flags.clear_all()
-        if A < val:
-            self._flags.set(Flags.CARRY)
-            self._flags.set(Flags.SIGN)
-        if (A&0x0f) < (val&0x0f):
-            self._flags.set(Flags.AUX_CARRY)
-        A -= val
-        if A == 0:
-            self._flags.set(Flags.ZERO)
-        b = int_to_signed_byte(A)
-        self._flags.calculate_parity(b)
+        self._internal_cmp(val)
+
+    def cpi(self, opcode, operand, *args):
+        """The operand is subtracted from the accumulator.  The flags
+        are set appropriately.
+        """
+        logging.info(f'CPI {operand:02X}')
+        self._internal_cmp(operand)
 
     def inx(self, opcode, *arg):
         """
