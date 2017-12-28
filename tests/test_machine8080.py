@@ -604,6 +604,48 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
+    def test_sub(self):
+        """
+        Instruction format: 10010SSS
+
+        Contents of register (or memory) is subtracted from A.
+        Condition flags are set.
+
+        Z flag is set if (A) == SSS; CY is set if A < SSS
+        """
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.B] = 0x80 # 1000 0000 (-128)
+        self.machine.sub(0x90)  # 0xd9  1101 1001
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0xd9)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.C] = 0x4a # 0100 1010  # I assume AC will be set
+        self.machine.sub(0x91)  # 0000 1111
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x0f)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.D] = 0x60  # 0110 0000
+        self.machine.sub(0x92)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0xf9)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sub(0x97)  
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
     def test_inx(self):
         tests = [(0x03, Registers.B, Registers.C), (0x13, Registers.D, Registers.E),
                  (0x23, Registers.H, Registers.L)]

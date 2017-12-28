@@ -230,14 +230,14 @@ class Machine8080:
             OpCode(int('8d', 16), 1, "ADC L", "none", self.adc),
             OpCode(int('8e', 16), 1, "ADC M", "none", self.adc),
             OpCode(int('8f', 16), 1, "ADC A", "none", self.adc),
-            OpCode(int('90', 16), 1, "SUB B", "none", self.unhandled_instruction),
-            OpCode(int('91', 16), 1, "SUB C", "none", self.unhandled_instruction),
-            OpCode(int('92', 16), 1, "SUB D", "none", self.unhandled_instruction),
-            OpCode(int('93', 16), 1, "SUB E", "none", self.unhandled_instruction),
-            OpCode(int('94', 16), 1, "SUB H", "none", self.unhandled_instruction),
-            OpCode(int('95', 16), 1, "SUB L", "none", self.unhandled_instruction),
-            OpCode(int('96', 16), 1, "SUB M", "none", self.unhandled_instruction),
-            OpCode(int('97', 16), 1, "SUB A", "none", self.unhandled_instruction),
+            OpCode(int('90', 16), 1, "SUB B", "none", self.sub),
+            OpCode(int('91', 16), 1, "SUB C", "none", self.sub),
+            OpCode(int('92', 16), 1, "SUB D", "none", self.sub),
+            OpCode(int('93', 16), 1, "SUB E", "none", self.sub),
+            OpCode(int('94', 16), 1, "SUB H", "none", self.sub),
+            OpCode(int('95', 16), 1, "SUB L", "none", self.sub),
+            OpCode(int('96', 16), 1, "SUB M", "none", self.sub),
+            OpCode(int('97', 16), 1, "SUB A", "none", self.sub),
             OpCode(int('98', 16), 1, "SBB B", "none", self.unhandled_instruction),
             OpCode(int('99', 16), 1, "SBB C", "none", self.unhandled_instruction),
             OpCode(int('9a', 16), 1, "SBB D", "none", self.unhandled_instruction),
@@ -303,7 +303,7 @@ class Machine8080:
             OpCode(int('d6', 16), 2, "SUI", "immediate", self.unhandled_instruction),
             OpCode(int('d7', 16), 1, "RST", "none", self.rst),
             OpCode(int('d8', 16), 1, "RC", "none", self.conditional_ret),
-            OpCode(int('d9', 16), 1, "UNKONWN", "none", self.unhandled_instruction),
+            OpCode(int('d9', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('da', 16), 3, "JC", "address", self.conditional_jmp),
             OpCode(int('db', 16), 2, "IN", "immediate", self.input),
             OpCode(int('dc', 16), 3, "CC", "address", self.conditional_call),
@@ -1018,7 +1018,10 @@ class Machine8080:
         A = ((A >> 1) & 0xff) | (cy << 7)
         self._registers[Registers.A] = A
 
-    def _internal_cmp(self, val):
+    def _internal_sub(self, val):
+        """Subtract val from A and set flags accordingly.
+        :return: A - val
+        """
         val = byte_to_signed_int(val)
         A = byte_to_signed_int(self._registers[Registers.A])
 
@@ -1033,6 +1036,7 @@ class Machine8080:
             self._flags.set(Flags.ZERO)
         b = int_to_signed_byte(A)
         self._flags.calculate_parity(b)
+        return b
 
     def cmp(self, opcode, *args):
         """
@@ -1052,14 +1056,14 @@ class Machine8080:
             val, *_ = self.read_memory(address, 1)
         else:
             val = self._registers[reg]
-        self._internal_cmp(val)
+        self._internal_sub(val)
 
     def cpi(self, opcode, operand, *args):
         """The operand is subtracted from the accumulator.  The flags
         are set appropriately.
         """
         logging.info(f'CPI {operand:02X}')
-        self._internal_cmp(operand)
+        self._internal_sub(operand)
 
     def inx(self, opcode, *arg):
         """
@@ -1326,6 +1330,21 @@ class Machine8080:
         """
         logging.info(f'IN {port:02X}')
         self._registers[Registers.A] = self._io.read(port)
+    
+    def sub(self, opcode, *args):
+        """Subtracts contents of register (encoded in opcode) from Accumulator.
+
+        Instruction format:  10010SSS
+        Flags: Z, S, P, CY, AC
+        """
+        logging.info(f'SUB {opcode:02X}')
+        reg = Registers.get_register_from_opcode(opcode, 0)
+        if reg == Registers.M:
+            addr = self._registers.get_address_from_pair(Registers.H)
+            val = self.read_memory(addr, 1)[0]
+        else:
+            val = self._registers[reg]
+        self._registers[Registers.A] = self._internal_sub(val)
 
 
 if __name__ == "__main__":
