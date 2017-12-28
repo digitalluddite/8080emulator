@@ -115,12 +115,35 @@ class LogicalOpsTests(TestCase):
         self.machine.ana(0xa2)
         self._test_flag(Flags.SIGN, "Sign", 0)
 
+    def _clear_flags(self):
+        for f in [Flags.CARRY, Flags.AUX_CARRY, Flags.SIGN, Flags.PARITY, Flags.ZERO]:
+            self.machine._flags.clear(f)
+
     def test_ani(self):
         """Logical AND the immediate byte with the accumulator
         CY and AC are cleared
         Other flags set appropriately
         """
-        pass
+        self._clear_flags()
+        self.machine._flags[Flags.CARRY] = 1
+        self.machine._flags[Flags.AUX_CARRY] = 1
+        self.machine._flags[Flags.PARITY] = 1
+        self.set_register(Registers.A, 0x22) # 0010 0010
+        self.machine.ani(0xe6, 0x60) # 0010 0000
+        self.assertEqual(self.machine._registers[Registers.A], 0x20)
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+
+        self.machine.ani(0xe6, 0x00)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        
+        self.set_register(Registers.A, 0x81)
+        self.machine.ani(0xe6, 0x81)
+        self.assertEqual(self.machine._registers[Registers.A], 0x81)
+        self._test_flag(Flags.SIGN, "Sign", 1)
 
     def test_xra(self):
         """

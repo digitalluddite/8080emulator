@@ -556,6 +556,18 @@ class Machine8080:
         if self._flags[flag] == res:
             self._pc = (hi << 8) | lo
 
+    def _logical_and_accumulator(self, val):
+        """Performs logical AND with val and contents of accumulator.
+
+        sets Zero, Sign, Parity bits appropriately.
+        """
+        res = val & self._registers[Registers.A]
+        self._registers[Registers.A] = res
+        self._flags.calculate_parity(res)
+        self._flags.set_zero(res)
+        self._flags.set_sign(res)
+        
+
     def ana(self, opcode, *args):
         """
         Logical AND the register (or byte at memory) with the accumulator.
@@ -573,20 +585,18 @@ class Machine8080:
         else:
             val = self._registers[reg]
 
-        res = val & self._registers[Registers.A]
-        self._registers[Registers.A] = res
-
         self._flags.clear(Flags.CARRY)
-        self._flags.calculate_parity(res)
-        self._flags.set_zero(res)
-        self._flags.set_sign(res)
+        self._logical_and_accumulator(val)
 
     def ani(self, opcode, *operands):
         """Logical AND the immediate byte with the accumulator.
 
         CY and AC are reset
         """
-        pass
+        logging.info(f'ANI {operands[0]:02X}')
+        self._flags.clear(Flags.CARRY)
+        self._flags.clear(Flags.AUX_CARRY)
+        self._logical_and_accumulator(operands[0])
 
     def _internal_or(self, val, orfunc):
         """[A] = orfunc([A], val)
