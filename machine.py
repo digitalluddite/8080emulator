@@ -297,7 +297,7 @@ class Machine8080:
             OpCode(int('d0', 16), 1, "RNC", "none", self.conditional_ret),
             OpCode(int('d1', 16), 1, "POP D", "none", self.pop_pair),
             OpCode(int('d2', 16), 3, "JNC", "address", self.conditional_jmp),
-            OpCode(int('d3', 16), 2, "OUT", "immediate", self.unhandled_instruction),
+            OpCode(int('d3', 16), 2, "OUT", "immediate", self.out),
             OpCode(int('d4', 16), 3, "CNC", "address", self.conditional_call),
             OpCode(int('d5', 16), 1, "PUSH D", "none", self.push_pair),
             OpCode(int('d6', 16), 2, "SUI", "immediate", self.unhandled_instruction),
@@ -305,7 +305,7 @@ class Machine8080:
             OpCode(int('d8', 16), 1, "RC", "none", self.conditional_ret),
             OpCode(int('d9', 16), 1, "UNKONWN", "none", self.unhandled_instruction),
             OpCode(int('da', 16), 3, "JC", "address", self.conditional_jmp),
-            OpCode(int('db', 16), 2, "IN", "immediate", self.unhandled_instruction),
+            OpCode(int('db', 16), 2, "IN", "immediate", self.input),
             OpCode(int('dc', 16), 3, "CC", "address", self.conditional_call),
             OpCode(int('dd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('de', 16), 2, "SBI", "immediate", self.unhandled_instruction),
@@ -1282,7 +1282,21 @@ class Machine8080:
         logging.info(f'ACI {operands[0]:02X}')
         val = operands[0] + self._flags[Flags.CARRY]
         self._add_accumulator(val)
-        
+    
+    def out(self, opcode, port, *args):
+        """Puts contents of accumulator onto IO bus at given port.
+        """
+        logging.info(f'OUT {port:02X}')
+        self._io.write(port, self._registers[Registers.A])
+
+    def input(self, opcode, port, *args):
+        """Reads a byte from the given port and stores it in the accumulator.
+
+        We can't call this "IN" because that's a keyword.
+        """
+        logging.info(f'IN {port:02X}')
+        self._registers[Registers.A] = self._io.read(port)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
