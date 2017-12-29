@@ -10,7 +10,7 @@ class TestMachine8080(TestCase):
     def setUp(self):
         self.machine = Machine8080()
         self.machine.load("rom")
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.WARNING)
 
     def test_read_memory(self):
         membytes = self.machine.read_memory(0, 10)

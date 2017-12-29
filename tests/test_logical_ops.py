@@ -8,7 +8,7 @@ class LogicalOpsTests(TestCase):
     def setUp(self):
         self.machine = Machine8080()
         self.machine.load("rom")
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.WARNING)
 
     def _test_flag(self, flag, name, expected):
         """Checks that the carry bit val is equal to expected.

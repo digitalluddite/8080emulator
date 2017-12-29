@@ -22,7 +22,7 @@ class TestInputOutput(TestCase):
         self.machine = Machine8080()
         self.machine.load('rom')
         self.machine._io = IoTest()
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.WARNING)
 
     def test_out(self):
         self.machine._registers[Registers.A] = 0x4f

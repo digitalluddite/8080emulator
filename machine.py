@@ -1354,7 +1354,7 @@ class Machine8080:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARNING)
     machine = Machine8080()
     machine.load(sys.argv[1])
     machine.execute()
