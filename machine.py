@@ -238,14 +238,14 @@ class Machine8080:
             OpCode(int('95', 16), 1, "SUB L", "none", self.sub),
             OpCode(int('96', 16), 1, "SUB M", "none", self.sub),
             OpCode(int('97', 16), 1, "SUB A", "none", self.sub),
-            OpCode(int('98', 16), 1, "SBB B", "none", self.unhandled_instruction),
-            OpCode(int('99', 16), 1, "SBB C", "none", self.unhandled_instruction),
-            OpCode(int('9a', 16), 1, "SBB D", "none", self.unhandled_instruction),
-            OpCode(int('9b', 16), 1, "SBB E", "none", self.unhandled_instruction),
-            OpCode(int('9c', 16), 1, "SBB H", "none", self.unhandled_instruction),
-            OpCode(int('9d', 16), 1, "SBB L", "none", self.unhandled_instruction),
-            OpCode(int('9e', 16), 1, "SBB M", "none", self.unhandled_instruction),
-            OpCode(int('9f', 16), 1, "SBB A", "none", self.unhandled_instruction),
+            OpCode(int('98', 16), 1, "SBB B", "none", self.sbb),
+            OpCode(int('99', 16), 1, "SBB C", "none", self.sbb),
+            OpCode(int('9a', 16), 1, "SBB D", "none", self.sbb),
+            OpCode(int('9b', 16), 1, "SBB E", "none", self.sbb),
+            OpCode(int('9c', 16), 1, "SBB H", "none", self.sbb),
+            OpCode(int('9d', 16), 1, "SBB L", "none", self.sbb),
+            OpCode(int('9e', 16), 1, "SBB M", "none", self.sbb),
+            OpCode(int('9f', 16), 1, "SBB A", "none", self.sbb),
             OpCode(int('a0', 16), 1, "ANA B", "none", self.ana),
             OpCode(int('a1', 16), 1, "ANA C", "none", self.ana),
             OpCode(int('a2', 16), 1, "ANA D", "none", self.ana),
@@ -1351,6 +1351,22 @@ class Machine8080:
         """
         logging.info(f'SUI {operand:02X}')
         self._registers[Registers.A] = self._internal_sub(operand)
+
+    def sbb(self, opcode, *args):
+        """Subtract with carry:
+
+        (A) <- (A) - (r) - CY
+        instruction 10011SSS
+        """
+        logging.info(f'SBB {opcode:02X}')
+        reg = Registers.get_register_from_opcode(opcode, 0)
+        if reg == Registers.M:
+            addr = self._registers.get_address_from_pair(Registers.H)
+            val = self.read_memory(addr, 1)[0]
+        else:
+            val = self._registers[Registers.A]
+        val -= self._flags[Flags.CARRY]
+        self._registers[Registers.A] = self._internal_sub(val)
 
 
 if __name__ == "__main__":

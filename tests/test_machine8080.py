@@ -646,6 +646,43 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
+    def test_sbb(self):
+        self.machine._flags[Flags.CARRY] = 0
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.B] = 0x80 # 1000 0000 (-128)
+        self.machine.sbb(0x98)  
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0xd9)
+
+        self._clear_flags()
+        self.machine._flags[Flags.CARRY] = 1
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.C] = 0x49 # 0100 1010  # I assume AC will be set
+        self.machine.sbb(0x99)  # 0000 1111
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x0f)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine._registers[Registers.D] = 0x60  # 0110 0000
+        self.machine.sbb(0x9a)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0xf9)
+
+        self._clear_flags()
+        self.machine._flags[Flags.CARRY] = 0 
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sub(0x97)  
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
     def test_sui(self):
         """
         Contents of immediate value is subtracted from A.
