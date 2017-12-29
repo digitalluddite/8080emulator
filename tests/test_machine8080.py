@@ -646,6 +646,44 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
+    def test_sui(self):
+        """
+        Contents of immediate value is subtracted from A.
+        Condition flags are set.
+
+        Z flag is set if (A) == SSS; CY is set if A < SSS
+        """
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sui(0xde, 0x80)  # 0xd9  1101 1001
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0xd9)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sui(0xde, 0x4a)  # 0000 1111
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x0f)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sui(0xde, 0x60)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0xf9)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sui(0xde, 0x59)  
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        
+
     def test_inx(self):
         tests = [(0x03, Registers.B, Registers.C), (0x13, Registers.D, Registers.E),
                  (0x23, Registers.H, Registers.L)]

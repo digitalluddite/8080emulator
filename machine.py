@@ -300,7 +300,7 @@ class Machine8080:
             OpCode(int('d3', 16), 2, "OUT", "immediate", self.out),
             OpCode(int('d4', 16), 3, "CNC", "address", self.conditional_call),
             OpCode(int('d5', 16), 1, "PUSH D", "none", self.push_pair),
-            OpCode(int('d6', 16), 2, "SUI", "immediate", self.unhandled_instruction),
+            OpCode(int('d6', 16), 2, "SUI", "immediate", self.sui),
             OpCode(int('d7', 16), 1, "RST", "none", self.rst),
             OpCode(int('d8', 16), 1, "RC", "none", self.conditional_ret),
             OpCode(int('d9', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
@@ -1345,6 +1345,12 @@ class Machine8080:
         else:
             val = self._registers[reg]
         self._registers[Registers.A] = self._internal_sub(val)
+
+    def sui(self, opcode, operand, *args):
+        """
+        """
+        logging.info(f'SUI {operand:02X}')
+        self._registers[Registers.A] = self._internal_sub(operand)
 
 
 if __name__ == "__main__":
