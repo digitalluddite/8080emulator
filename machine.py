@@ -1364,7 +1364,8 @@ class Machine8080:
             addr = self._registers.get_address_from_pair(Registers.H)
             val = self.read_memory(addr, 1)[0]
         else:
-            val = self._registers[Registers.A]
+            val = self._registers[reg]
+        logging.debug("val = {0:02X} CARRY: {1}".format(val, self._flags[Flags.CARRY]))
         val -= self._flags[Flags.CARRY]
         self._registers[Registers.A] = self._internal_sub(val)
 

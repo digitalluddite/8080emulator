@@ -647,7 +647,7 @@ class TestMachine8080(TestCase):
         self._test_flag(Flags.PARITY, "Parity", 1)
 
     def test_sbb(self):
-        self.machine._flags[Flags.CARRY] = 0
+        self._clear_flags()
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
         self.machine._registers[Registers.B] = 0x80 # 1000 0000 (-128)
         self.machine.sbb(0x98)  
@@ -661,8 +661,8 @@ class TestMachine8080(TestCase):
         self._clear_flags()
         self.machine._flags[Flags.CARRY] = 1
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine._registers[Registers.C] = 0x49 # 0100 1010  # I assume AC will be set
-        self.machine.sbb(0x99)  # 0000 1111
+        self.machine._registers[Registers.C] = 0x4b # 0100 1011  # I assume AC will be set
+        self.machine.sbb(0x99)  # 
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
         self.assertEqual(self.machine._registers[Registers.A], 0x0f)
