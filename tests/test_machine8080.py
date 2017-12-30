@@ -577,7 +577,7 @@ class TestMachine8080(TestCase):
         """Same as cmp but with an immediate value instead of in a register.
         """
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.cpi(0xfe, 0x80)  # 0xd9  1101 1001
+        self.machine.cpi(0xfe, [0x80])  # 0xd9  1101 1001
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.ZERO, "Zero", 0)
         self._test_flag(Flags.SIGN, "Sign", 0)
@@ -588,19 +588,19 @@ class TestMachine8080(TestCase):
         self._clear_flags()
         #  0101 1001
         #  0100 1010
-        self.machine.cpi(0xfe, 0x4a)  # 0000 1111
+        self.machine.cpi(0xfe, [0x4a])  # 0000 1111
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
 
         self._clear_flags()
-        self.machine.cpi(0xfe, 0x60)
+        self.machine.cpi(0xfe, [0x60])
         self._test_flag(Flags.CARRY, "Carry", 1)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
         self._test_flag(Flags.SIGN, "Sign", 1)
 
         self._clear_flags()
         self.set_register(Registers.A, 0x60)
-        self.machine.cpi(0xfe, 0x60)  # 0x81 1000 0001
+        self.machine.cpi(0xfe, [0x60])  # 0x81 1000 0001
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
@@ -686,7 +686,7 @@ class TestMachine8080(TestCase):
     def test_sbi(self):
         self._clear_flags()
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sbi(0xde, 0x80)  
+        self.machine.sbi(0xde, [0x80])  
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.ZERO, "Zero", 0)
         self._test_flag(Flags.SIGN, "Sign", 0)
@@ -697,14 +697,14 @@ class TestMachine8080(TestCase):
         self._clear_flags()
         self.machine._flags[Flags.CARRY] = 1
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sbi(0xde, 0x4b)  # 
+        self.machine.sbi(0xde, [0x4b])  # 
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
         self.assertEqual(self.machine._registers[Registers.A], 0x0f)
 
         self._clear_flags()
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sbi(0xde, 0x60)
+        self.machine.sbi(0xde, [0x60])
         self._test_flag(Flags.CARRY, "Carry", 1)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
         self._test_flag(Flags.SIGN, "Sign", 1)
@@ -713,7 +713,7 @@ class TestMachine8080(TestCase):
         self._clear_flags()
         self.machine._flags[Flags.CARRY] = 0 
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sbi(0xde, 0x59)  
+        self.machine.sbi(0xde, [0x59])  
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
@@ -725,7 +725,7 @@ class TestMachine8080(TestCase):
         Z flag is set if (A) == SSS; CY is set if A < SSS
         """
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sui(0xde, 0x80)  # 0xd9  1101 1001
+        self.machine.sui(0xde, [0x80])  # 0xd9  1101 1001
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.ZERO, "Zero", 0)
         self._test_flag(Flags.SIGN, "Sign", 0)
@@ -735,14 +735,14 @@ class TestMachine8080(TestCase):
 
         self._clear_flags()
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sui(0xde, 0x4a)  # 0000 1111
+        self.machine.sui(0xde, [0x4a])  # 0000 1111
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
         self.assertEqual(self.machine._registers[Registers.A], 0x0f)
 
         self._clear_flags()
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sui(0xde, 0x60)
+        self.machine.sui(0xde, [0x60])
         self._test_flag(Flags.CARRY, "Carry", 1)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
         self._test_flag(Flags.SIGN, "Sign", 1)
@@ -750,7 +750,7 @@ class TestMachine8080(TestCase):
 
         self._clear_flags()
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sui(0xde, 0x59)  
+        self.machine.sui(0xde, [0x59])  
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
         
@@ -958,7 +958,7 @@ class TestMachine8080(TestCase):
         """
         self.set_register(Registers.A, 0x33)
         self._clear_flags()
-        self.machine.adi(0xc6, 0x10)
+        self.machine.adi(0xc6, [0x10])
         self.assertEqual(self.machine._registers[Registers.A], 0x43)
         for f in self.machine._flags:
             self.assertEqual(f, 0)  
@@ -966,7 +966,7 @@ class TestMachine8080(TestCase):
         # zero, carry, and parity flag
         self.set_register(Registers.A, 0xff)
         self._clear_flags()
-        self.machine.adi(0xc6, 0x01)
+        self.machine.adi(0xc6, [0x01])
         self.assertEqual(self.machine._registers[Registers.A], 0x00)
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
@@ -975,14 +975,14 @@ class TestMachine8080(TestCase):
         # sign aux. carry flag
         self._clear_flags()
         self.set_register(Registers.A, 0x7f)
-        self.machine.adi(0xc6, 0x01)
+        self.machine.adi(0xc6, [0x01])
         self.assertEqual(self.machine._registers[Registers.A], 0x80)
         self._test_flag(Flags.SIGN, "Sign", 1)
 
         # test that adding zero leaves things unchanged
         self._clear_flags()
         self.set_register(Registers.A, 0x7f)
-        self.machine.adi(0xc6, 0x00)
+        self.machine.adi(0xc6, [0x00])
         self._test_flag(Flags.CARRY, "Carry", 0)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
 
@@ -1094,7 +1094,7 @@ class TestMachine8080(TestCase):
         """
         self._clear_flags()
         self.set_register(Registers.A, 0x12)
-        self.machine.aci(0xce, 0x12)
+        self.machine.aci(0xce, [0x12])
         self.assertEqual(self.machine._registers[Registers.A], 0x24)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
@@ -1102,14 +1102,14 @@ class TestMachine8080(TestCase):
         self.machine._flags[Flags.PARITY] = 1
         self.machine._flags[Flags.CARRY] = 1
         self.set_register(Registers.A, 0x1)
-        self.machine.aci(0xce, 0x0)
+        self.machine.aci(0xce, [0x0])
         self.assertEqual(self.machine._registers[Registers.A], 0x2)
         for f in self.machine._flags:
             self.assertEqual(f, 0)
 
         self._clear_flags()
         self.set_register(Registers.A, 0x1)
-        self.machine.aci(0xce, 0xff)
+        self.machine.aci(0xce, [0xff])
         self.assertEqual(self.machine._registers[Registers.A], 0x00)
         self._test_flag(Flags.CARRY, "Carry", 1)
         self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
@@ -1117,7 +1117,7 @@ class TestMachine8080(TestCase):
 
         self._clear_flags()
         self.set_register(Registers.A, 0x2)
-        self.machine.aci(0xce, 0x7f)
+        self.machine.aci(0xce, [0x7f])
         self._test_flag(Flags.SIGN, "Sign", 1)
 
     def test_daa(self):

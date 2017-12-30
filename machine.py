@@ -1,10 +1,34 @@
 import sys
 import logging
 from collections import namedtuple
+import time
 
 from cpu import Flags, Registers, RegisterPair
 from utils import byte_to_signed_int, int_to_signed_byte
+from iobus import IOBus
 
+class Timing:
+    def __init__(self, name):
+        self.name = name
+        self.avg = 0
+
+    def add_time(self, t):
+        if self.avg == 0:
+            self.avg = t
+        else:
+            self.avg = (self.avg + t) / 2
+        
+__instruction_times = {}
+
+def clock(func):
+    def clocked(*args):
+        t0 = time.perf_counter()
+        func(*args)
+        elapsed = time.perf_counter() - t0
+        timing = __instruction_times.setdefault(func.__name__, 
+                                                Timing(func.__name__))
+        timing.add_time(elapsed)
+    return clocked
 
 """
 OpCode object
@@ -78,6 +102,7 @@ class Machine8080:
         self._registers = Registers()
         self._sp = 0
         self._interrupts = True # true for enabled... this will change
+        self._io = IOBus()
         self._condition_flags = {0: ConditionalFlag(Flags.ZERO, 0),
                                  1: ConditionalFlag(Flags.ZERO, 1),
                                  2: ConditionalFlag(Flags.CARRY, 0),
@@ -131,7 +156,7 @@ class Machine8080:
             OpCode(int('29', 16), 1, "DAD H", "none", self.dad),
             OpCode(int('2a', 16), 3, "LHLD", "address", self.lhld),
             OpCode(int('2b', 16), 1, "DCX H", "none", self.dcx),
-            OpCode(int('2c', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
+            OpCode(int('2c', 16), 1, "INR L", "none", self.inr),
             OpCode(int('2d', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('2e', 16), 2, "MVI L,", "immediate", self.mvi),
             OpCode(int('2f', 16), 1, "CMA", "none", self.cma),
@@ -597,7 +622,7 @@ class Machine8080:
         self._flags.clear(Flags.CARRY)
         self._logical_and_accumulator(val)
 
-    def ani(self, opcode, *operands):
+    def ani(self, opcode, operands):
         """Logical AND the immediate byte with the accumulator.
 
         CY and AC are reset
@@ -1067,12 +1092,12 @@ class Machine8080:
             val = self._registers[reg]
         self._internal_sub(val)
 
-    def cpi(self, opcode, operand, *args):
+    def cpi(self, opcode, operands):
         """The operand is subtracted from the accumulator.  The flags
         are set appropriately.
         """
-        logging.info(f'CPI {operand:02X}')
-        self._internal_sub(operand)
+        logging.info(f'CPI {operands[0]:02X}')
+        self._internal_sub(operands[0])
 
     def inx(self, opcode, *arg):
         """
@@ -1217,7 +1242,7 @@ class Machine8080:
         self._sp -= 2
         self._pc = 8 * ((opcode >> 3)&0x7)
 
-    def adi(self, opcode, *operands):
+    def adi(self, opcode, operands):
         """
         (A) <- (A) + operands[0]
 
@@ -1316,7 +1341,7 @@ class Machine8080:
         val += CY
         self._add_accumulator(val)
 
-    def aci(self, opcode, *operands):
+    def aci(self, opcode, operands):
         """Add immediate with carry.
         (A) <- (A) + CY + operands[0]
 
@@ -1326,19 +1351,19 @@ class Machine8080:
         val = operands[0] + self._flags[Flags.CARRY]
         self._add_accumulator(val)
     
-    def out(self, opcode, port, *args):
+    def out(self, opcode, port):
         """Puts contents of accumulator onto IO bus at given port.
         """
-        logging.info(f'OUT {port:02X}')
-        self._io.write(port, self._registers[Registers.A])
+        logging.info(f'OUT {port[0]:02X}')
+        self._io.write(port[0], self._registers[Registers.A])
 
-    def input(self, opcode, port, *args):
+    def input(self, opcode, port):
         """Reads a byte from the given port and stores it in the accumulator.
 
         We can't call this "IN" because that's a keyword.
         """
-        logging.info(f'IN {port:02X}')
-        self._registers[Registers.A] = self._io.read(port)
+        logging.info(f'IN {port[0]:02X}')
+        self._registers[Registers.A] = self._io.read(port[0])
     
     def sub(self, opcode, *args):
         """Subtracts contents of register (encoded in opcode) from Accumulator.
@@ -1355,11 +1380,11 @@ class Machine8080:
             val = self._registers[reg]
         self._registers[Registers.A] = self._internal_sub(val)
 
-    def sui(self, opcode, operand, *args):
+    def sui(self, opcode, operands):
         """
         """
-        logging.info(f'SUI {operand:02X}')
-        self._registers[Registers.A] = self._internal_sub(operand)
+        logging.info(f'SUI {operands[0]:02X}')
+        self._registers[Registers.A] = self._internal_sub(operands[0])
 
     def sbb(self, opcode, *args):
         """Subtract with carry:
@@ -1377,13 +1402,13 @@ class Machine8080:
         val -= self._flags[Flags.CARRY]
         self._registers[Registers.A] = self._internal_sub(val)
 
-    def sbi(self, opcode, operand, *args):
+    def sbi(self, opcode, operands):
         """Subtract immediate with borrow (carry)
 
         (A) <- (A) - operand - CY
         """
-        logging.info(f'SBI {operand:02X}')
-        val = operand - self._flags[Flags.CARRY]
+        logging.info(f'SBI {operands[0]:02X}')
+        val = operands[0] - self._flags[Flags.CARRY]
         self._registers[Registers.A] = self._internal_sub(val)
 
     def ei(self, *args):
@@ -1442,7 +1467,7 @@ class Machine8080:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
     machine = Machine8080()
     machine.load(sys.argv[1])
     machine.execute()

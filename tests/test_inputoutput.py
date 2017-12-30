@@ -26,7 +26,7 @@ class TestInputOutput(TestCase):
 
     def test_out(self):
         self.machine._registers[Registers.A] = 0x4f
-        self.machine.out(0xd3, 0x2)
+        self.machine.out(0xd3, [0x2])
         self.machine._flags.clear_all() 
         self.assertEqual(self.machine._io.ports[2], 0x4f)
         for f in self.machine._flags:
@@ -35,7 +35,7 @@ class TestInputOutput(TestCase):
     def test_in(self):
         self.machine._io.ports[1] = 0xab
         self.machine._flags.clear_all() 
-        self.machine.input(0xdb, 1)
+        self.machine.input(0xdb, [1])
         self.assertEqual(self.machine._registers[Registers.A], 0xab)
         for f in self.machine._flags:
             self.assertEqual(f, 0)
