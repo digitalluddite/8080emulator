@@ -679,7 +679,41 @@ class TestMachine8080(TestCase):
         self._clear_flags()
         self.machine._flags[Flags.CARRY] = 0 
         self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
-        self.machine.sub(0x97)  
+        self.machine.sbb(0x97)  
+        self._test_flag(Flags.ZERO, "Zero", 1)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+
+    def test_sbi(self):
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sbi(0xde, 0x80)  
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self.assertEqual(self.machine._registers[Registers.A], 0xd9)
+
+        self._clear_flags()
+        self.machine._flags[Flags.CARRY] = 1
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sbi(0xde, 0x4b)  # 
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0x0f)
+
+        self._clear_flags()
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sbi(0xde, 0x60)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+        self.assertEqual(self.machine._registers[Registers.A], 0xf9)
+
+        self._clear_flags()
+        self.machine._flags[Flags.CARRY] = 0 
+        self.machine._registers[Registers.A] = 0x59 # 0101 1001 (89)
+        self.machine.sbi(0xde, 0x59)  
         self._test_flag(Flags.ZERO, "Zero", 1)
         self._test_flag(Flags.PARITY, "Parity", 1)
 
@@ -1085,4 +1119,74 @@ class TestMachine8080(TestCase):
         self.set_register(Registers.A, 0x2)
         self.machine.aci(0xce, 0x7f)
         self._test_flag(Flags.SIGN, "Sign", 1)
+
+    def test_daa(self):
+        """Decimal Adjust Accumulator
+
+        The eigt-bit number in the accumulator is adjusted to form
+        two four-bit Binary-Coded-Decimal digits by the following
+        process:
+
+        1.  If the value of the least significant 4 bits of the 
+            accumulator is greater than 9 or if the AC flag is 
+            set, 6 is added to the accumulator.
+
+        2.  If the value of the most significant 4 bits of the 
+            accumulator is now greater than 9 or if the CY flag
+            is set, 6 is added to the most significant 4 bits of
+            the accumulator.
+
+        All flags are affected.
+        """
+        logging.info('DAA')
+        self._clear_flags()
+        self.set_register(Registers.A, 0x03)
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x03)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        self._test_flag(Flags.CARRY, "Carry", 0)
+        self._test_flag(Flags.AUX_CARRY, "AUX Carry", 0)
+        self._test_flag(Flags.SIGN, "Sign", 0)
+        self._test_flag(Flags.ZERO, "Zero", 0)
+
+        self.machine._flags[Flags.AUX_CARRY] = 1
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x09)
+        self._test_flag(Flags.PARITY, "Parity", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 0)
+
+        self.machine._flags[Flags.AUX_CARRY] = 0
+        self.set_register(Registers.A, 0x7)
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x7)
+        self._test_flag(Flags.PARITY, "Parity", 0)
+    
+        self.set_register(Registers.A, 0xf)
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x15)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0x20)
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x20)
+
+        self.machine._flags[Flags.CARRY] = 1
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x80)
+        self._test_flag(Flags.SIGN, "Sign", 1)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0xf0)
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x50)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+
+        self._clear_flags()
+        self.set_register(Registers.A, 0x9a) # 1001 1010  + 110 =   0xa0  
+        self.machine.daa(0x27)
+        self.assertEqual(self.machine._registers[Registers.A], 0x00)
+        self._test_flag(Flags.CARRY, "Carry", 1)
+        self._test_flag(Flags.AUX_CARRY, "Aux Carry", 1)
+        self._test_flag(Flags.ZERO, "Zero", 1)
 

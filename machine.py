@@ -77,6 +77,7 @@ class Machine8080:
         self._flags = Flags()
         self._registers = Registers()
         self._sp = 0
+        self._interrupts = True # true for enabled... this will change
         self._condition_flags = {0: ConditionalFlag(Flags.ZERO, 0),
                                  1: ConditionalFlag(Flags.ZERO, 1),
                                  2: ConditionalFlag(Flags.CARRY, 0),
@@ -125,7 +126,7 @@ class Machine8080:
             OpCode(int('24', 16), 1, "INR H", "none", self.inr),
             OpCode(int('25', 16), 1, "DCR H", "none", self.dcr),
             OpCode(int('26', 16), 2, "MVI H,", "immediate", self.mvi),
-            OpCode(int('27', 16), 1, "DAA", "none", self.unhandled_instruction),
+            OpCode(int('27', 16), 1, "DAA", "none", self.daa),
             OpCode(int('28', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('29', 16), 1, "DAD H", "none", self.dad),
             OpCode(int('2a', 16), 3, "LHLD", "address", self.lhld),
@@ -308,7 +309,7 @@ class Machine8080:
             OpCode(int('db', 16), 2, "IN", "immediate", self.input),
             OpCode(int('dc', 16), 3, "CC", "address", self.conditional_call),
             OpCode(int('dd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
-            OpCode(int('de', 16), 2, "SBI", "immediate", self.unhandled_instruction),
+            OpCode(int('de', 16), 2, "SBI", "immediate", self.sbi),
             OpCode(int('df', 16), 1, "RST", "none", self.rst),
             OpCode(int('e0', 16), 1, "RPO", "none", self.conditional_ret),
             OpCode(int('e1', 16), 1, "POP H", "none", self.pop_pair),
@@ -329,7 +330,7 @@ class Machine8080:
             OpCode(int('f0', 16), 1, "RP", "none", self.conditional_ret),
             OpCode(int('f1', 16), 1, "POP PSW", "none", self.pop_psw),
             OpCode(int('f2', 16), 3, "JP", "address", self.conditional_jmp),
-            OpCode(int('f3', 16), 1, "DI", "none", self.unhandled_instruction),
+            OpCode(int('f3', 16), 1, "DI", "none", self.di),
             OpCode(int('f4', 16), 3, "CP", "address", self.conditional_call),
             OpCode(int('f5', 16), 1, "PUSH PSW", "none", self.push_psw),
             OpCode(int('f6', 16), 2, "ORI", "immediate", self.ori),
@@ -337,12 +338,20 @@ class Machine8080:
             OpCode(int('f8', 16), 1, "RM", "none", self.conditional_ret),
             OpCode(int('f9', 16), 1, "SPHL", "none", self.sphl),
             OpCode(int('fa', 16), 3, "JM", "address", self.conditional_jmp),
-            OpCode(int('fb', 16), 1, "EI", "none", self.unhandled_instruction),
+            OpCode(int('fb', 16), 1, "EI", "none", self.ei),
             OpCode(int('fc', 16), 3, "CM", "address", self.conditional_call),
             OpCode(int('fd', 16), 1, "UNKNOWN", "none", self.unhandled_instruction),
             OpCode(int('fe', 16), 2, "CPI", "immediate", self.cpi),
             OpCode(int('ff', 16), 1, "RST", "none", self.rst),
         )
+
+    def _enable_interrupts(self, enabled):
+        """Enables and disables interrupts.
+
+        I'm not sure how to handle these yet so I'm just 
+        basically making a placeholder.
+        """
+        self._interrupts = enabled
 
     def load(self, romfile):
         """Loads the given ROM file
@@ -1365,9 +1374,71 @@ class Machine8080:
             val = self.read_memory(addr, 1)[0]
         else:
             val = self._registers[reg]
-        logging.debug("val = {0:02X} CARRY: {1}".format(val, self._flags[Flags.CARRY]))
         val -= self._flags[Flags.CARRY]
         self._registers[Registers.A] = self._internal_sub(val)
+
+    def sbi(self, opcode, operand, *args):
+        """Subtract immediate with borrow (carry)
+
+        (A) <- (A) - operand - CY
+        """
+        logging.info(f'SBI {operand:02X}')
+        val = operand - self._flags[Flags.CARRY]
+        self._registers[Registers.A] = self._internal_sub(val)
+
+    def ei(self, *args):
+        """Enable interupts
+        """
+        logging.info("EI")
+        self._enable_interrupts(True)
+
+    def di(self, *args):
+        """Enable interupts
+        """
+        logging.info("DI")
+        self._enable_interrupts(False)
+
+    def daa(self, *args):
+        """Decimal Adjust Accumulator
+
+        The eigt-bit number in the accumulator is adjusted to form
+        two four-bit Binary-Coded-Decimal digits by the following
+        process:
+
+        1.  If the value of the least significant 4 bits of the 
+            accumulator is greater than 9 or if the AC flag is 
+            set, 6 is added to the accumulator.
+
+        2.  If the value of the most significant 4 bits of the 
+            accumulator is now greater than 9 or if the CY flag
+            is set, 6 is added to the most significant 4 bits of
+            the accumulator.
+
+        All flags are affected.
+        """
+        logging.info("DAA")
+        val = self._registers[Registers.A]
+        least = val & 0xf
+        if least > 9 or self._flags[Flags.AUX_CARRY] == 1:
+            val += 6
+            if least > 9:
+                self._flags[Flags.AUX_CARRY] = 1
+            else:
+                self._flags[Flags.AUX_CARRY] = 0
+
+        most = (val & 0xf0) >> 4
+        if most > 9 or self._flags[Flags.CARRY] == 1:
+            val += (6 << 4)
+            if val > 0xff:
+                self._flags[Flags.CARRY] = 1
+            else:
+                self._flags[Flags.CARRY] = 0
+
+        val &= 0xff
+        self._flags.calculate_parity(val)
+        self._flags.set_zero(val)
+        self._flags.set_sign(val)
+        self._registers[Registers.A] = val
 
 
 if __name__ == "__main__":
